@@ -16,5 +16,6 @@ export function loadConfig(env = process.env) {
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),
+    debugToken: env.DEBUG_TOKEN || '',
   };
 }

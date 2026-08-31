@@ -99,3 +99,12 @@ The next slice should add account resolution:
 - map Lark users to internal owners
 - enrich messages with action item/risk extraction
 - emit daily or weekly account summaries back into Lark
+
+## Passive Read Check
+
+Ron logs every Lark message event that Lark sends to the webhook. To verify whether Lark is sending unmentioned group messages, enable `DEBUG_TOKEN` and inspect:
+
+```txt
+GET /debug/recent-events
+Authorization: Bearer YOUR_DEBUG_TOKEN
+```

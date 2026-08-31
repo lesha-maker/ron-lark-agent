@@ -35,6 +35,7 @@ LARK_ENCRYPT_KEY=...
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-5.6-luna
 EVENT_STORE_PATH=/tmp/ron-events.jsonl
+DEBUG_TOKEN=generate-a-long-random-token
 ```
 
 Railway provides `PORT` automatically. Do not hard-code `PORT` unless Railway asks you to.
@@ -66,3 +67,9 @@ Or mention Ron in a group chat:
 ## Notes
 
 The current JSONL event store uses Railway's ephemeral filesystem. That is fine for the first always-on bot test, but production should move account memory to Postgres or another durable database.
+
+To check whether Lark is sending passive group messages, set `DEBUG_TOKEN`, send a group message without mentioning Ron, then call:
+
+```bash
+curl -H "Authorization: Bearer YOUR_DEBUG_TOKEN" https://YOUR-RAILWAY-DOMAIN/debug/recent-events
+```

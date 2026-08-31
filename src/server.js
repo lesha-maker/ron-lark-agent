@@ -28,11 +28,47 @@ async function readRequestBody(req) {
   return Buffer.concat(chunks);
 }
 
+function isAuthorizedDebugRequest(req) {
+  if (!config.debugToken) return false;
+  return req.headers.authorization === `Bearer ${config.debugToken}`;
+}
+
+function redactEvent(event) {
+  return {
+    source: event.source,
+    sourceEventId: event.sourceEventId,
+    sourceEventType: event.sourceEventType,
+    occurredAt: event.occurredAt,
+    channel: event.channel,
+    actor: event.actor,
+    message: {
+      id: event.message?.id || null,
+      type: event.message?.type || null,
+      textPreview: event.message?.text ? event.message.text.slice(0, 160) : '',
+      mentionsCount: event.message?.mentions?.length || 0,
+    },
+    ignored: event.ignored || false,
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, service: 'lark-account-agent' }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url?.startsWith('/debug/recent-events')) {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const events = await eventStore.recent(20);
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ events: events.map(redactEvent) }));
       return;
     }
 
