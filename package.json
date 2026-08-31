@@ -1,0 +1,15 @@
+{
+  "name": "account-management-agent-lark",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "check:lark-auth": "node src/checkLarkAuth.js",
+    "check:openai": "node src/checkOpenAi.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
