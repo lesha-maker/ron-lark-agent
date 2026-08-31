@@ -7,6 +7,7 @@ import { handleLarkWebhook } from './larkWebhook.js';
 import { OpenAiClient } from './openAiClient.js';
 import { TtlDeduper } from './deduper.js';
 import { backfillLarkChatHistory } from './historyBackfill.js';
+import { APP_VERSION } from './version.js';
 
 loadDotEnv();
 
@@ -56,7 +57,13 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, service: 'lark-account-agent' }));
+      res.end(JSON.stringify({ ok: true, service: 'lark-account-agent', version: APP_VERSION }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/version') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ version: APP_VERSION }));
       return;
     }
 
