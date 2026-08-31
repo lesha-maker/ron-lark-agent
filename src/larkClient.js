@@ -57,4 +57,41 @@ export class LarkClient {
 
     return data.data;
   }
+
+  async listMessages({
+    containerId,
+    containerIdType = 'chat',
+    startTime,
+    endTime,
+    pageSize = 50,
+    pageToken,
+    sortType = 'ByCreateTimeAsc',
+  }) {
+    const token = await this.getTenantAccessToken();
+    const params = new URLSearchParams({
+      container_id_type: containerIdType,
+      container_id: containerId,
+      page_size: String(pageSize),
+      sort_type: sortType,
+    });
+
+    if (startTime) params.set('start_time', String(startTime));
+    if (endTime) params.set('end_time', String(endTime));
+    if (pageToken) params.set('page_token', pageToken);
+
+    const response = await this.fetch(`${this.baseUrl}/open-apis/im/v1/messages?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json; charset=utf-8',
+      },
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.code !== 0) {
+      throw new Error(`Failed to list Lark messages: ${data.msg || response.statusText}`);
+    }
+
+    return data.data || { items: [], has_more: false };
+  }
 }

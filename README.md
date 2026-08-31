@@ -108,3 +108,24 @@ Ron logs every Lark message event that Lark sends to the webhook. To verify whet
 GET /debug/recent-events
 Authorization: Bearer YOUR_DEBUG_TOKEN
 ```
+
+## Historical Backfill
+
+Ron can backfill a Lark group chat through:
+
+```txt
+POST /admin/backfill/lark-history
+Authorization: Bearer YOUR_DEBUG_TOKEN
+```
+
+Body:
+
+```json
+{
+  "chatId": "oc_xxx",
+  "days": 30,
+  "maxPages": 20
+}
+```
+
+Ron must be in the chat. For group history, the Lark app also needs permission to get all messages in a group.

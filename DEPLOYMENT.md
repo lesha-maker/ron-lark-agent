@@ -73,3 +73,14 @@ To check whether Lark is sending passive group messages, set `DEBUG_TOKEN`, send
 ```bash
 curl -H "Authorization: Bearer YOUR_DEBUG_TOKEN" https://YOUR-RAILWAY-DOMAIN/debug/recent-events
 ```
+
+To backfill historical messages from a group chat:
+
+```bash
+curl -X POST https://YOUR-RAILWAY-DOMAIN/admin/backfill/lark-history \
+  -H "Authorization: Bearer YOUR_DEBUG_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"chatId":"oc_xxx","days":30,"maxPages":20}'
+```
+
+Ron must be in the group and the Lark app must have permission to get group message history.

@@ -6,6 +6,7 @@ import { LarkClient } from './larkClient.js';
 import { handleLarkWebhook } from './larkWebhook.js';
 import { OpenAiClient } from './openAiClient.js';
 import { TtlDeduper } from './deduper.js';
+import { backfillLarkChatHistory } from './historyBackfill.js';
 
 loadDotEnv();
 
@@ -69,6 +70,31 @@ const server = http.createServer(async (req, res) => {
       const events = await eventStore.recent(20);
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ events: events.map(redactEvent) }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/backfill/lark-history') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const rawBody = await readRequestBody(req);
+      const body = JSON.parse(rawBody.toString('utf8') || '{}');
+      const result = await backfillLarkChatHistory({
+        larkClient,
+        eventStore,
+        chatId: body.chatId,
+        days: body.days,
+        startTime: body.startTime,
+        endTime: body.endTime,
+        maxPages: body.maxPages,
+        pageSize: body.pageSize,
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result));
       return;
     }
 

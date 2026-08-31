@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
+    "backfill:lark-history": "node src/backfillLarkHistoryCli.js",
     "check:lark-auth": "node src/checkLarkAuth.js",
     "check:openai": "node src/checkOpenAi.js",
     "test": "node --test"
