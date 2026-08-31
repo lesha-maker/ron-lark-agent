@@ -1,9 +1,16 @@
 function messageMentionsBot(normalizedEvent, botOpenId) {
-  if (!botOpenId) return false;
-
   return normalizedEvent.message.mentions.some((mention) => {
     const mentionId = mention.id || mention;
-    return mentionId.open_id === botOpenId || mentionId.user_id === botOpenId || mentionId === botOpenId;
+    const mentionName = mention.name || mention?.id?.name || '';
+
+    return (
+      (botOpenId && (
+        mentionId.open_id === botOpenId ||
+        mentionId.user_id === botOpenId ||
+        mentionId === botOpenId
+      )) ||
+      mentionName.toLowerCase() === 'ron'
+    );
   });
 }
 

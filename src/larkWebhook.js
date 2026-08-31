@@ -2,6 +2,7 @@ import { decryptLarkPayload, verifyLarkSignature } from './larkSecurity.js';
 import { normalizeLarkEvent } from './normalizer.js';
 import { shouldReplyToLarkMessage } from './agentResponder.js';
 import { generateRonReply } from './conversationAgent.js';
+import { handleHistoryBackfillCommand, isHistoryBackfillCommand } from './historyCommand.js';
 
 function verifyToken(payload, expectedToken) {
   return !expectedToken || payload.token === expectedToken || payload.header?.token === expectedToken;
@@ -15,9 +16,12 @@ function dedupeKeyFor(normalized) {
   return normalized.message?.id || normalized.sourceEventId;
 }
 
-async function replyInBackground({ normalized, larkClient, openAiClient }) {
+async function replyInBackground({ normalized, larkClient, openAiClient, eventStore }) {
   try {
-    const reply = await generateRonReply({ normalizedEvent: normalized, openAiClient });
+    const reply = isHistoryBackfillCommand(normalized)
+      ? await handleHistoryBackfillCommand({ normalizedEvent: normalized, larkClient, eventStore })
+      : await generateRonReply({ normalizedEvent: normalized, openAiClient });
+
     await larkClient.replyText(normalized.message.id, reply);
   } catch (error) {
     console.error('Lark reply failed:', error.message);
@@ -78,7 +82,7 @@ export async function handleLarkWebhook({
 
   if (larkClient && shouldReplyToLarkMessage(normalized, config)) {
     setImmediate(() => {
-      void replyInBackground({ normalized, larkClient, openAiClient });
+      void replyInBackground({ normalized, larkClient, openAiClient, eventStore });
     });
   }
 

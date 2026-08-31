@@ -29,6 +29,17 @@ test('replies to group messages that mention the bot', () => {
   }, { larkReplyToAllGroupMessages: false, larkBotOpenId: 'ou_bot' }), true);
 });
 
+test('replies to group messages that mention Ron by name', () => {
+  assert.equal(shouldReplyToLarkMessage({
+    sourceEventType: 'im.message.receive_v1',
+    channel: { type: 'group' },
+    message: {
+      id: 'om_123',
+      mentions: [{ name: 'Ron', id: { open_id: 'ou_unknown' } }],
+    },
+  }, { larkReplyToAllGroupMessages: false, larkBotOpenId: '' }), true);
+});
+
 test('builds a short presence reply', () => {
   const reply = buildPresenceReply({
     message: { text: 'Can we send the pricing today?' },
