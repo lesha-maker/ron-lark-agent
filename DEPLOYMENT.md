@@ -112,3 +112,21 @@ X-Webhook-Secret: YOUR_EMAIL_WEBHOOK_SECRET
 ```
 
 For Google Workspace/Gmail inboxes, use `integrations/google-apps-script/ron-email-forwarder.gs` to poll `ron@nas.com` and POST new emails into this endpoint.
+
+## Account Summaries
+
+Ron can summarize the current Lark or Slack workstream when tagged:
+
+```txt
+@Ron summarize this account
+@Ron what is working and what is blocked?
+```
+
+You can also call:
+
+```bash
+curl -X POST https://YOUR-RAILWAY-DOMAIN/admin/summarize \
+  -H "Authorization: Bearer YOUR_DEBUG_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"source":"slack","channelId":"C123","prompt":"summarize this account","limit":200}'
+```

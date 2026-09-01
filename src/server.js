@@ -11,6 +11,7 @@ import { APP_VERSION } from './version.js';
 import { handleInboundEmailWebhook } from './emailWebhook.js';
 import { SlackClient } from './slackClient.js';
 import { handleSlackWebhook } from './slackWebhook.js';
+import { generateAccountSummary } from './accountBrain.js';
 
 loadDotEnv();
 
@@ -135,6 +136,32 @@ const server = http.createServer(async (req, res) => {
         userId: auth.user_id,
         botId: auth.bot_id,
       }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/summarize') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const rawBody = await readRequestBody(req);
+      const body = JSON.parse(rawBody.toString('utf8') || '{}');
+      const summary = await generateAccountSummary({
+        normalizedEvent: {
+          source: body.source,
+          channel: { id: body.channelId },
+          actor: {},
+          message: { text: body.prompt || 'summarize this account' },
+        },
+        eventStore,
+        openAiClient,
+        limit: body.limit || 200,
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, summary }));
       return;
     }
 

@@ -1,4 +1,5 @@
 import { generateRonReply } from './conversationAgent.js';
+import { generateAccountSummary, isAccountSummaryCommand } from './accountBrain.js';
 import { normalizeSlackEvent } from './slackNormalizer.js';
 import { verifySlackSignature } from './slackSecurity.js';
 
@@ -31,9 +32,11 @@ function replyDedupeKeyFor(normalized) {
   return `slack-reply:${normalized.message?.id || normalized.sourceEventId}`;
 }
 
-async function replyInBackground({ normalized, slackClient, openAiClient }) {
+async function replyInBackground({ normalized, slackClient, openAiClient, eventStore }) {
   try {
-    const reply = await generateRonReply({ normalizedEvent: normalized, openAiClient });
+    const reply = isAccountSummaryCommand(normalized)
+      ? await generateAccountSummary({ normalizedEvent: normalized, eventStore, openAiClient })
+      : await generateRonReply({ normalizedEvent: normalized, openAiClient });
     await slackClient.postMessage({
       channel: normalized.channel.id,
       text: reply,
@@ -82,7 +85,7 @@ export async function handleSlackWebhook({
     const shouldSendReply = deduper?.claim(replyDedupeKeyFor(normalized)) ?? true;
     if (shouldSendReply) {
       setImmediate(() => {
-        void replyInBackground({ normalized, slackClient, openAiClient });
+        void replyInBackground({ normalized, slackClient, openAiClient, eventStore });
       });
     }
   }

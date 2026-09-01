@@ -155,3 +155,40 @@ https://YOUR-RAILWAY-DOMAIN/webhooks/email/inbound
 ```
 
 If `ron@nas.com` is a Google Workspace/Gmail inbox, use the Apps Script bridge in `integrations/google-apps-script`.
+
+## Account Brain
+
+Ron can summarize a connected workstream when tagged in Lark or Slack:
+
+```txt
+@Ron summarize this account
+@Ron what is working and what is blocked?
+@Ron what are the next steps?
+```
+
+The first brain version summarizes stored events for the current channel and returns:
+
+```txt
+Current read
+What is working
+What is blocked or risky
+Next steps
+```
+
+There is also a protected admin endpoint:
+
+```txt
+POST /admin/summarize
+Authorization: Bearer YOUR_DEBUG_TOKEN
+```
+
+Body:
+
+```json
+{
+  "source": "slack",
+  "channelId": "C123",
+  "prompt": "summarize this account",
+  "limit": 200
+}
+```

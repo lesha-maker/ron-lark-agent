@@ -12,17 +12,31 @@ export class JsonlEventStore {
   }
 
   async recent(limit = 20) {
+    const events = await this.all();
+    return events.slice(-limit);
+  }
+
+  async all() {
     try {
       const content = await fs.readFile(this.filePath, 'utf8');
       return content
         .trim()
         .split('\n')
         .filter(Boolean)
-        .slice(-limit)
         .map((line) => JSON.parse(line));
     } catch (error) {
       if (error.code === 'ENOENT') return [];
       throw error;
     }
+  }
+
+  async forChannel({ source, channelId, limit = 200 }) {
+    const events = await this.all();
+    return events
+      .filter((event) => {
+        if (source && event.source !== source) return false;
+        return event.channel?.id === channelId;
+      })
+      .slice(-limit);
   }
 }

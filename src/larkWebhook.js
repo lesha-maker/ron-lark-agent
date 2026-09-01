@@ -3,6 +3,7 @@ import { normalizeLarkEvent } from './normalizer.js';
 import { shouldReplyToLarkMessage } from './agentResponder.js';
 import { generateRonReply } from './conversationAgent.js';
 import { handleHistoryBackfillCommand, isHistoryBackfillCommand } from './historyCommand.js';
+import { generateAccountSummary, isAccountSummaryCommand } from './accountBrain.js';
 
 function verifyToken(payload, expectedToken) {
   return !expectedToken || payload.token === expectedToken || payload.header?.token === expectedToken;
@@ -20,6 +21,8 @@ async function replyInBackground({ normalized, larkClient, openAiClient, eventSt
   try {
     const reply = isHistoryBackfillCommand(normalized)
       ? await handleHistoryBackfillCommand({ normalizedEvent: normalized, larkClient, eventStore })
+      : isAccountSummaryCommand(normalized)
+        ? await generateAccountSummary({ normalizedEvent: normalized, eventStore, openAiClient })
       : await generateRonReply({ normalizedEvent: normalized, openAiClient });
 
     await larkClient.replyText(normalized.message.id, reply);
