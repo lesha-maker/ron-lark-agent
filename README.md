@@ -25,11 +25,18 @@ curl http://127.0.0.1:3000/health
 ```
 
 Railway deployment instructions are in [DEPLOYMENT.md](./DEPLOYMENT.md).
+Slack setup instructions are in [SLACK_SETUP.md](./SLACK_SETUP.md).
 
 Lark event endpoint:
 
 ```txt
 POST /webhooks/lark
+```
+
+Slack event endpoint:
+
+```txt
+POST /webhooks/slack
 ```
 
 For local Lark testing, expose the server with a tunnel such as ngrok or Cloudflare Tunnel and configure the public URL in Lark Open Platform:

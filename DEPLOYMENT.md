@@ -37,6 +37,9 @@ OPENAI_MODEL=gpt-5.6-luna
 EVENT_STORE_PATH=/tmp/ron-events.jsonl
 DEBUG_TOKEN=generate-a-long-random-token
 EMAIL_WEBHOOK_SECRET=generate-a-long-random-token
+SLACK_SIGNING_SECRET=...
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_REPLY_TO_ALL_CHANNEL_MESSAGES=false
 ```
 
 Railway provides `PORT` automatically. Do not hard-code `PORT` unless Railway asks you to.

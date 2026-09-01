@@ -9,6 +9,8 @@ import { TtlDeduper } from './deduper.js';
 import { backfillLarkChatHistory } from './historyBackfill.js';
 import { APP_VERSION } from './version.js';
 import { handleInboundEmailWebhook } from './emailWebhook.js';
+import { SlackClient } from './slackClient.js';
+import { handleSlackWebhook } from './slackWebhook.js';
 
 loadDotEnv();
 
@@ -23,6 +25,9 @@ const larkClient = new LarkClient({
 const openAiClient = new OpenAiClient({
   apiKey: config.openAiApiKey,
   model: config.openAiModel,
+});
+const slackClient = new SlackClient({
+  botToken: config.slackBotToken,
 });
 
 async function readRequestBody(req) {
@@ -138,6 +143,23 @@ const server = http.createServer(async (req, res) => {
         headers: req.headers,
         config,
         eventStore,
+      });
+
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/webhooks/slack') {
+      const rawBody = await readRequestBody(req);
+      const result = await handleSlackWebhook({
+        rawBody,
+        headers: req.headers,
+        config,
+        eventStore,
+        slackClient,
+        openAiClient,
+        deduper,
       });
 
       res.writeHead(result.status, { 'content-type': 'application/json' });
