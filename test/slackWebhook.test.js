@@ -111,3 +111,66 @@ test('normalizes and replies to Slack app mentions', async () => {
   assert.equal(replies[0].channel, 'C123');
   assert.equal(replies[0].threadTs, '1788180000.000100');
 });
+
+test('deduplicates Slack message and app mention deliveries for the same post', async () => {
+  const replies = [];
+  const store = memoryStore();
+  const deduper = {
+    keys: new Set(),
+    claim(key) {
+      if (this.keys.has(key)) return false;
+      this.keys.add(key);
+      return true;
+    },
+  };
+  const baseEvent = {
+    user: 'U123',
+    channel: 'C123',
+    text: '<@URON> hi',
+    ts: '1788180000.000100',
+    event_ts: '1788180000.000100',
+  };
+  const messageBody = JSON.stringify({
+    type: 'event_callback',
+    team_id: 'T123',
+    event_id: 'Ev_message',
+    event: {
+      ...baseEvent,
+      type: 'message',
+      channel_type: 'channel',
+    },
+  });
+  const mentionBody = JSON.stringify({
+    type: 'event_callback',
+    team_id: 'T123',
+    event_id: 'Ev_mention',
+    event: {
+      ...baseEvent,
+      type: 'app_mention',
+    },
+  });
+
+  await handleSlackWebhook({
+    rawBody: Buffer.from(messageBody),
+    headers: slackHeaders(messageBody),
+    config,
+    eventStore: store,
+    deduper,
+    openAiClient: { isConfigured: () => false },
+    slackClient: { isConfigured: () => true, async postMessage(reply) { replies.push(reply); } },
+  });
+  const second = await handleSlackWebhook({
+    rawBody: Buffer.from(mentionBody),
+    headers: slackHeaders(mentionBody),
+    config,
+    eventStore: store,
+    deduper,
+    openAiClient: { isConfigured: () => false },
+    slackClient: { isConfigured: () => true, async postMessage(reply) { replies.push(reply); } },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(second.body.duplicate, true);
+  assert.equal(store.events.length, 1);
+  assert.equal(replies.length, 0);
+});

@@ -20,6 +20,10 @@ function shouldReplyToSlackEvent(normalized, payload, config) {
 }
 
 function dedupeKeyFor(normalized) {
+  if (normalized.channel?.id && normalized.message?.threadTs) {
+    return `slack:${normalized.channel.id}:${normalized.message.threadTs}`;
+  }
+
   return normalized.sourceEventId || normalized.message?.id;
 }
 

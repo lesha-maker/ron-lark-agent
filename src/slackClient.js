@@ -8,6 +8,28 @@ export class SlackClient {
     return Boolean(this.botToken);
   }
 
+  async authTest() {
+    if (!this.botToken) {
+      throw new Error('SLACK_BOT_TOKEN is required to call Slack auth.test.');
+    }
+
+    const response = await this.fetch('https://slack.com/api/auth.test', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${this.botToken}`,
+        'content-type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({}),
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(`Slack auth.test failed: ${data.error || response.statusText}`);
+    }
+
+    return data;
+  }
+
   async postMessage({ channel, text, threadTs }) {
     if (!this.botToken) {
       throw new Error('SLACK_BOT_TOKEN is required to send Slack messages.');

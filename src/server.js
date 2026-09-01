@@ -119,6 +119,45 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'GET' && req.url === '/debug/slack-auth') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const auth = await slackClient.authTest();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        team: auth.team,
+        user: auth.user,
+        userId: auth.user_id,
+        botId: auth.bot_id,
+      }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/slack/test-message') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const rawBody = await readRequestBody(req);
+      const body = JSON.parse(rawBody.toString('utf8') || '{}');
+      const result = await slackClient.postMessage({
+        channel: body.channel,
+        text: body.text || 'Ron Slack test message.',
+        threadTs: body.threadTs,
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, ts: result.ts, channel: result.channel }));
+      return;
+    }
+
     if (req.method === 'POST' && req.url === '/webhooks/lark') {
       const rawBody = await readRequestBody(req);
       const result = await handleLarkWebhook({

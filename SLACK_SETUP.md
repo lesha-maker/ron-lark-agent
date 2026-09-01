@@ -71,3 +71,21 @@ Then test:
 ```
 
 DMs should also work.
+
+## Debug
+
+After adding Railway variables, check Slack auth:
+
+```bash
+curl -H "Authorization: Bearer YOUR_DEBUG_TOKEN" \
+  https://ron-lark-agent-production.up.railway.app/debug/slack-auth
+```
+
+Send a test Slack message:
+
+```bash
+curl -X POST https://ron-lark-agent-production.up.railway.app/admin/slack/test-message \
+  -H "Authorization: Bearer YOUR_DEBUG_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"channel":"C123","text":"Ron Slack test"}'
+```
