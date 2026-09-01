@@ -129,3 +129,20 @@ Body:
 ```
 
 Ron must be in the chat. For group history, the Lark app also needs permission to get all messages in a group.
+
+## Email Ingestion
+
+Ron can store inbound email from a webhook provider:
+
+```txt
+POST /webhooks/email/inbound
+Authorization: Bearer YOUR_EMAIL_WEBHOOK_SECRET
+```
+
+Accepted payload fields include common names such as `from`, `to`, `cc`, `subject`, `text`, `html`, `messageId`, and `attachments`.
+
+Use this with an inbound email provider so people can cc Ron into account conversations. The provider should forward email for Ron's address to:
+
+```txt
+https://YOUR-RAILWAY-DOMAIN/webhooks/email/inbound
+```

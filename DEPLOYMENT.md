@@ -36,6 +36,7 @@ OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-5.6-luna
 EVENT_STORE_PATH=/tmp/ron-events.jsonl
 DEBUG_TOKEN=generate-a-long-random-token
+EMAIL_WEBHOOK_SECRET=generate-a-long-random-token
 ```
 
 Railway provides `PORT` automatically. Do not hard-code `PORT` unless Railway asks you to.
@@ -84,3 +85,25 @@ curl -X POST https://YOUR-RAILWAY-DOMAIN/admin/backfill/lark-history \
 ```
 
 Ron must be in the group and the Lark app must have permission to get group message history.
+
+## Inbound Email
+
+Create an address for Ron, for example:
+
+```txt
+ron@yourdomain.com
+```
+
+Configure your inbound email provider to POST parsed email JSON to:
+
+```txt
+https://YOUR-RAILWAY-DOMAIN/webhooks/email/inbound
+```
+
+Include one of these auth headers:
+
+```txt
+Authorization: Bearer YOUR_EMAIL_WEBHOOK_SECRET
+X-Ron-Email-Secret: YOUR_EMAIL_WEBHOOK_SECRET
+X-Webhook-Secret: YOUR_EMAIL_WEBHOOK_SECRET
+```

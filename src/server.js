@@ -8,6 +8,7 @@ import { OpenAiClient } from './openAiClient.js';
 import { TtlDeduper } from './deduper.js';
 import { backfillLarkChatHistory } from './historyBackfill.js';
 import { APP_VERSION } from './version.js';
+import { handleInboundEmailWebhook } from './emailWebhook.js';
 
 loadDotEnv();
 
@@ -115,6 +116,20 @@ const server = http.createServer(async (req, res) => {
         larkClient,
         openAiClient,
         deduper,
+      });
+
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/webhooks/email/inbound') {
+      const rawBody = await readRequestBody(req);
+      const result = await handleInboundEmailWebhook({
+        rawBody,
+        headers: req.headers,
+        config,
+        eventStore,
       });
 
       res.writeHead(result.status, { 'content-type': 'application/json' });
