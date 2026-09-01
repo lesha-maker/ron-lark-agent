@@ -264,7 +264,7 @@ const server = http.createServer(async (req, res) => {
 
       if (!isValidReportAccess({
         dateKey,
-        secret: config.debugToken || config.larkAppSecret,
+        secret: config.larkAppSecret,
         providedToken: token,
       })) {
         res.writeHead(403, { 'content-type': 'text/html; charset=utf-8' });

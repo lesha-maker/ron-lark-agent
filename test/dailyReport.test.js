@@ -81,7 +81,7 @@ test('sends daily report to configured Lark chat and records sent event', async 
       larkTimelineWikiToken: 'timeline',
       larkContractsWikiToken: 'contracts',
       publicBaseUrl: 'https://ron.example.com',
-      debugToken: 'secret',
+      larkAppSecret: 'secret',
     },
     eventStore: store,
     larkClient: {

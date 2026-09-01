@@ -49,7 +49,7 @@ export async function sendDailyAccountReportNow({
   const reportUrl = dailyReportUrl({
     publicBaseUrl: config.publicBaseUrl,
     dateKey,
-    secret: config.debugToken || config.larkAppSecret,
+    secret: config.larkAppSecret,
   });
   const report = await generateDailyAccountReport({
     eventStore,
