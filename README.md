@@ -146,3 +146,5 @@ Use this with an inbound email provider so people can cc Ron into account conver
 ```txt
 https://YOUR-RAILWAY-DOMAIN/webhooks/email/inbound
 ```
+
+If `ron@nas.com` is a Google Workspace/Gmail inbox, use the Apps Script bridge in `integrations/google-apps-script`.

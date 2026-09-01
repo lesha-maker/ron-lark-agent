@@ -107,3 +107,5 @@ Authorization: Bearer YOUR_EMAIL_WEBHOOK_SECRET
 X-Ron-Email-Secret: YOUR_EMAIL_WEBHOOK_SECRET
 X-Webhook-Secret: YOUR_EMAIL_WEBHOOK_SECRET
 ```
+
+For Google Workspace/Gmail inboxes, use `integrations/google-apps-script/ron-email-forwarder.gs` to poll `ron@nas.com` and POST new emails into this endpoint.
