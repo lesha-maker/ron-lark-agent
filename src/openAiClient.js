@@ -12,9 +12,10 @@ function extractOutputText(response) {
 }
 
 export class OpenAiClient {
-  constructor({ apiKey, model, fetchImpl = fetch }) {
+  constructor({ apiKey, model, timeoutMs = 25_000, fetchImpl = fetch }) {
     this.apiKey = apiKey;
     this.model = model;
+    this.timeoutMs = timeoutMs;
     this.fetch = fetchImpl;
   }
 
@@ -27,20 +28,34 @@ export class OpenAiClient {
       throw new Error('OPENAI_API_KEY is required for OpenAI responses.');
     }
 
-    const response = await this.fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        instructions,
-        input,
-        max_output_tokens: maxOutputTokens,
-        store: false,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    let response;
+    try {
+      response = await this.fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+          'content-type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: this.model,
+          instructions,
+          input,
+          max_output_tokens: maxOutputTokens,
+          store: false,
+        }),
+      });
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`OpenAI request timed out after ${this.timeoutMs}ms.`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
     const data = await response.json();
 
     if (!response.ok) {

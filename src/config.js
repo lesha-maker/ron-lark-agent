@@ -21,6 +21,7 @@ export function loadConfig(env = process.env) {
     publicBaseUrl: (env.PUBLIC_BASE_URL || env.RAILWAY_PUBLIC_DOMAIN || 'https://ron-lark-agent-production.up.railway.app').replace(/\/$/, ''),
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
+    openAiTimeoutMs: Number(env.OPENAI_TIMEOUT_MS || 25_000),
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),
     debugToken: env.DEBUG_TOKEN || '',
     emailWebhookSecret: env.EMAIL_WEBHOOK_SECRET || '',

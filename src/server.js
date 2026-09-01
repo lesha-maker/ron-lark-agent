@@ -31,6 +31,7 @@ const larkClient = new LarkClient({
 const openAiClient = new OpenAiClient({
   apiKey: config.openAiApiKey,
   model: config.openAiModel,
+  timeoutMs: config.openAiTimeoutMs,
 });
 const slackClient = new SlackClient({
   botToken: config.slackBotToken,

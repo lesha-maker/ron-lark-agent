@@ -135,7 +135,7 @@ export async function generateDailyAccountReport({
     '',
     'Live timeline baseline:',
     timelineDoc
-      ? `Title: ${timelineDoc.title || 'Untitled'}\n${String(timelineDoc.content || '').slice(0, 12000)}`
+      ? `Title: ${timelineDoc.title || 'Untitled'}\n${String(timelineDoc.content || '').slice(0, 8000)}`
       : '(not configured)',
     '',
     'Live contracts baseline:',
@@ -146,7 +146,7 @@ export async function generateDailyAccountReport({
     return await openAiClient.createTextResponse({
       instructions: DAILY_REPORT_INSTRUCTIONS,
       input,
-      maxOutputTokens: 1200,
+      maxOutputTokens: 900,
     });
   } catch (error) {
     console.error('Daily account report failed:', error.message);
