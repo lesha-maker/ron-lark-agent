@@ -14,6 +14,7 @@ export function loadConfig(env = process.env) {
     larkVerificationToken: env.LARK_VERIFICATION_TOKEN || '',
     larkEncryptKey: env.LARK_ENCRYPT_KEY || '',
     larkTimelineWikiToken: env.LARK_TIMELINE_WIKI_TOKEN || 'NcZ1wTy0IipL3VkrvUYlcb6Cgmg',
+    larkContractsWikiToken: env.LARK_CONTRACTS_WIKI_TOKEN || 'Xrs2walDQiSAsPkTIfZlZNiZg6e',
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),

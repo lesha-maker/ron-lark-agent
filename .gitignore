@@ -1,5 +1,6 @@
 .env
 data/*.jsonl
+data/contracts/
 node_modules/
 .DS_Store
 npm-debug.log*

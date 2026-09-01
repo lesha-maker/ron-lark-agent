@@ -35,7 +35,9 @@ test('summarizes current channel with OpenAI when configured', async () => {
       async createTextResponse({ instructions, input }) {
         assert.match(instructions, /source of truth/);
         assert.match(input, /Live timeline document/);
+        assert.match(input, /Live contracts spreadsheet/);
         assert.match(input, /Pathkind/);
+        assert.match(input, /Pathkind MOU.pdf/);
         assert.match(instructions, /Current read/);
         assert.match(input, /Customer needs GA4 access confirmed/);
         return 'Current read\n- Access is the main topic.\nWhat is working\n- Context exists.\nWhat is blocked or risky\n- GA4 needs confirmation.\nNext steps\n- Confirm owner.';
@@ -51,6 +53,23 @@ test('summarizes current channel with OpenAI when configured', async () => {
       },
     },
     timelineWikiToken: 'wiki_123',
+    contractsSheetsClient: {
+      async readContractsOverview(token) {
+        assert.equal(token, 'contracts_123');
+        return {
+          title: 'Overview of Clients',
+          rows: [{
+            client: 'Pathkind',
+            agentList: 'Company brain',
+            startDate: '13th July',
+            country: 'India',
+            firstInvoiceRaised: 'Yes',
+            contractAttachments: [{ filename: 'Pathkind MOU.pdf' }],
+          }],
+        };
+      },
+    },
+    contractsWikiToken: 'contracts_123',
   });
 
   assert.match(summary, /GA4 needs confirmation/);
@@ -84,6 +103,36 @@ test('continues summaries if the live timeline doc cannot be read', async () => 
   });
 
   assert.match(summary, /Timeline unavailable/);
+});
+
+test('continues summaries if the live contracts sheet cannot be read', async () => {
+  const summary = await generateAccountSummary({
+    normalizedEvent: {
+      source: 'lark',
+      channel: { id: 'oc_123' },
+      message: { text: '@Ron summarize contract status' },
+    },
+    eventStore: {
+      async forChannel() {
+        return [];
+      },
+    },
+    openAiClient: {
+      isConfigured: () => true,
+      async createTextResponse({ input }) {
+        assert.match(input, /Live contracts spreadsheet could not be read/);
+        return 'Current read\n- Contract overview unavailable.\nWhat is working\n- Ron still answers.\nWhat is blocked or risky\n- Missing contract sheet.\nNext steps\n- Retry later.';
+      },
+    },
+    contractsSheetsClient: {
+      async readContractsOverview() {
+        throw new Error('temporary Lark sheets failure');
+      },
+    },
+    contractsWikiToken: 'contracts_123',
+  });
+
+  assert.match(summary, /Contract overview unavailable/);
 });
 
 test('falls back when no OpenAI client is configured', async () => {

@@ -179,9 +179,11 @@ For timeline/status questions, Ron also reads the live Lark wiki document config
 
 ```txt
 LARK_TIMELINE_WIKI_TOKEN=NcZ1wTy0IipL3VkrvUYlcb6Cgmg
+LARK_CONTRACTS_WIKI_TOKEN=Xrs2walDQiSAsPkTIfZlZNiZg6e
 ```
 
 That wiki document is treated as the source of truth for delivery dates and whether accounts are on track. Chat, Slack, and email records are used as supporting evidence.
+The contracts spreadsheet is treated as the source of truth for contracts, invoice status, start dates, countries, and purchased agent lists.
 
 There is also a protected admin endpoint:
 

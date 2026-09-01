@@ -4,6 +4,7 @@ const SUMMARY_INSTRUCTIONS = [
   'You are Ron, an account management agent summarizing account workstreams.',
   'Use only the provided events. Do not invent facts.',
   'Treat the live timeline document as the source of truth for delivery timelines and whether accounts are on track.',
+  'Treat the live contracts spreadsheet as the source of truth for contracts, invoice status, start dates, countries, and purchased agent lists.',
   'Use stored chat, Slack, and email events as supporting operational evidence.',
   'Write for an internal account team that needs fast operational clarity.',
   'Return a concise summary with exactly these headings: Current read, What is working, What is blocked or risky, Next steps.',
@@ -78,12 +79,48 @@ async function readTimelineDoc({ timelineDocsClient, timelineWikiToken }) {
   }
 }
 
+async function readContractsOverview({ contractsSheetsClient, contractsWikiToken }) {
+  if (!contractsSheetsClient || !contractsWikiToken) return null;
+
+  try {
+    return await contractsSheetsClient.readContractsOverview(contractsWikiToken);
+  } catch (error) {
+    console.error('Live contracts sheet read failed:', error.message);
+    return {
+      title: 'Unavailable',
+      rows: [],
+      error: `Live contracts spreadsheet could not be read: ${error.message}`,
+    };
+  }
+}
+
+function formatContractsOverview(overview) {
+  if (!overview) return '(not configured)';
+  if (overview.error) return overview.error;
+
+  const rows = overview.rows.map((row) => {
+    const contractNames = row.contractAttachments.map((attachment) => attachment.filename).join('; ') || 'none attached';
+    return [
+      row.client,
+      `agents=${row.agentList || 'unknown'}`,
+      `start=${row.startDate || 'unknown'}`,
+      `country=${row.country || 'unknown'}`,
+      `invoiceRaised=${row.firstInvoiceRaised || 'unknown'}`,
+      `contract=${contractNames}`,
+    ].join(' | ');
+  });
+
+  return [`Title: ${overview.title || 'Untitled'}`, ...rows].join('\n').slice(0, 12000);
+}
+
 export async function generateAccountSummary({
   normalizedEvent,
   eventStore,
   openAiClient,
   timelineDocsClient,
   timelineWikiToken,
+  contractsSheetsClient,
+  contractsWikiToken,
   limit = 200,
 }) {
   const events = normalizedEvent.channel?.id
@@ -97,6 +134,7 @@ export async function generateAccountSummary({
   if (!openAiClient?.isConfigured()) return fallbackSummary(events);
 
   const timelineDoc = await readTimelineDoc({ timelineDocsClient, timelineWikiToken });
+  const contractsOverview = await readContractsOverview({ contractsSheetsClient, contractsWikiToken });
   const timeline = events.map(eventToLine).join('\n');
   const input = [
     `Current user request: ${normalizedEvent.message?.text || ''}`,
@@ -107,6 +145,9 @@ export async function generateAccountSummary({
     timelineDoc
       ? `Title: ${timelineDoc.title || 'Untitled'}\n${String(timelineDoc.content || '').slice(0, 12000)}`
       : '(not configured)',
+    '',
+    'Live contracts spreadsheet:',
+    formatContractsOverview(contractsOverview),
     '',
     'Stored events:',
     timeline || '(none)',

@@ -13,6 +13,7 @@ import { SlackClient } from './slackClient.js';
 import { handleSlackWebhook } from './slackWebhook.js';
 import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
+import { LarkSheetsClient } from './larkSheetsClient.js';
 
 loadDotEnv();
 
@@ -32,6 +33,10 @@ const slackClient = new SlackClient({
   botToken: config.slackBotToken,
 });
 const timelineDocsClient = new LarkDocsClient({
+  baseUrl: config.larkOpenBaseUrl,
+  larkClient,
+});
+const contractsSheetsClient = new LarkSheetsClient({
   baseUrl: config.larkOpenBaseUrl,
   larkClient,
 });
@@ -164,6 +169,8 @@ const server = http.createServer(async (req, res) => {
         openAiClient,
         timelineDocsClient,
         timelineWikiToken: config.larkTimelineWikiToken,
+        contractsSheetsClient,
+        contractsWikiToken: config.larkContractsWikiToken,
         limit: body.limit || 200,
       });
 
@@ -202,6 +209,7 @@ const server = http.createServer(async (req, res) => {
         larkClient,
         openAiClient,
         timelineDocsClient,
+        contractsSheetsClient,
         deduper,
       });
 
@@ -234,6 +242,7 @@ const server = http.createServer(async (req, res) => {
         slackClient,
         openAiClient,
         timelineDocsClient,
+        contractsSheetsClient,
         deduper,
       });
 

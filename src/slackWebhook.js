@@ -32,7 +32,15 @@ function replyDedupeKeyFor(normalized) {
   return `slack-reply:${normalized.message?.id || normalized.sourceEventId}`;
 }
 
-async function replyInBackground({ normalized, config, slackClient, openAiClient, eventStore, timelineDocsClient }) {
+async function replyInBackground({
+  normalized,
+  config,
+  slackClient,
+  openAiClient,
+  eventStore,
+  timelineDocsClient,
+  contractsSheetsClient,
+}) {
   try {
     const reply = isAccountSummaryCommand(normalized)
       ? await generateAccountSummary({
@@ -41,6 +49,8 @@ async function replyInBackground({ normalized, config, slackClient, openAiClient
         openAiClient,
         timelineDocsClient,
         timelineWikiToken: config.larkTimelineWikiToken,
+        contractsSheetsClient,
+        contractsWikiToken: config.larkContractsWikiToken,
       })
       : await generateRonReply({ normalizedEvent: normalized, openAiClient });
     await slackClient.postMessage({
@@ -61,6 +71,7 @@ export async function handleSlackWebhook({
   slackClient,
   openAiClient,
   timelineDocsClient,
+  contractsSheetsClient,
   deduper,
 }) {
   const signatureIsValid = verifySlackSignature({
@@ -92,7 +103,15 @@ export async function handleSlackWebhook({
     const shouldSendReply = deduper?.claim(replyDedupeKeyFor(normalized)) ?? true;
     if (shouldSendReply) {
       setImmediate(() => {
-        void replyInBackground({ normalized, config, slackClient, openAiClient, eventStore, timelineDocsClient });
+        void replyInBackground({
+          normalized,
+          config,
+          slackClient,
+          openAiClient,
+          eventStore,
+          timelineDocsClient,
+          contractsSheetsClient,
+        });
       });
     }
   }
