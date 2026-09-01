@@ -175,6 +175,14 @@ What is blocked or risky
 Next steps
 ```
 
+For timeline/status questions, Ron also reads the live Lark wiki document configured by:
+
+```txt
+LARK_TIMELINE_WIKI_TOKEN=NcZ1wTy0IipL3VkrvUYlcb6Cgmg
+```
+
+That wiki document is treated as the source of truth for delivery dates and whether accounts are on track. Chat, Slack, and email records are used as supporting evidence.
+
 There is also a protected admin endpoint:
 
 ```txt

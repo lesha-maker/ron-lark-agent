@@ -3,6 +3,8 @@ const SUMMARY_COMMAND_PATTERN = /\b(summary|summarize|status|learned|learnt|work
 const SUMMARY_INSTRUCTIONS = [
   'You are Ron, an account management agent summarizing account workstreams.',
   'Use only the provided events. Do not invent facts.',
+  'Treat the live timeline document as the source of truth for delivery timelines and whether accounts are on track.',
+  'Use stored chat, Slack, and email events as supporting operational evidence.',
   'Write for an internal account team that needs fast operational clarity.',
   'Return a concise summary with exactly these headings: Current read, What is working, What is blocked or risky, Next steps.',
   'Use bullets under each heading. If evidence is thin, say so plainly.',
@@ -62,10 +64,26 @@ function fallbackSummary(events) {
   ].join('\n');
 }
 
+async function readTimelineDoc({ timelineDocsClient, timelineWikiToken }) {
+  if (!timelineDocsClient || !timelineWikiToken) return null;
+
+  try {
+    return await timelineDocsClient.readWikiDocument(timelineWikiToken);
+  } catch (error) {
+    console.error('Live timeline doc read failed:', error.message);
+    return {
+      title: 'Unavailable',
+      content: `Live timeline document could not be read: ${error.message}`,
+    };
+  }
+}
+
 export async function generateAccountSummary({
   normalizedEvent,
   eventStore,
   openAiClient,
+  timelineDocsClient,
+  timelineWikiToken,
   limit = 200,
 }) {
   const events = normalizedEvent.channel?.id
@@ -78,11 +96,17 @@ export async function generateAccountSummary({
 
   if (!openAiClient?.isConfigured()) return fallbackSummary(events);
 
+  const timelineDoc = await readTimelineDoc({ timelineDocsClient, timelineWikiToken });
   const timeline = events.map(eventToLine).join('\n');
   const input = [
     `Current user request: ${normalizedEvent.message?.text || ''}`,
     `Current source: ${normalizedEvent.source || 'unknown'}`,
     `Current channel: ${normalizedEvent.channel?.id || 'unknown'}`,
+    '',
+    'Live timeline document:',
+    timelineDoc
+      ? `Title: ${timelineDoc.title || 'Untitled'}\n${String(timelineDoc.content || '').slice(0, 12000)}`
+      : '(not configured)',
     '',
     'Stored events:',
     timeline || '(none)',

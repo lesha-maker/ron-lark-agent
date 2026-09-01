@@ -17,12 +17,18 @@ function dedupeKeyFor(normalized) {
   return normalized.message?.id || normalized.sourceEventId;
 }
 
-async function replyInBackground({ normalized, larkClient, openAiClient, eventStore }) {
+async function replyInBackground({ normalized, config, larkClient, openAiClient, eventStore, timelineDocsClient }) {
   try {
     const reply = isHistoryBackfillCommand(normalized)
       ? await handleHistoryBackfillCommand({ normalizedEvent: normalized, larkClient, eventStore })
       : isAccountSummaryCommand(normalized)
-        ? await generateAccountSummary({ normalizedEvent: normalized, eventStore, openAiClient })
+        ? await generateAccountSummary({
+          normalizedEvent: normalized,
+          eventStore,
+          openAiClient,
+          timelineDocsClient,
+          timelineWikiToken: config.larkTimelineWikiToken,
+        })
       : await generateRonReply({ normalizedEvent: normalized, openAiClient });
 
     await larkClient.replyText(normalized.message.id, reply);
@@ -38,6 +44,7 @@ export async function handleLarkWebhook({
   eventStore,
   larkClient,
   openAiClient,
+  timelineDocsClient,
   deduper,
 }) {
   let payload = JSON.parse(rawBody.toString('utf8') || '{}');
@@ -85,7 +92,7 @@ export async function handleLarkWebhook({
 
   if (larkClient && shouldReplyToLarkMessage(normalized, config)) {
     setImmediate(() => {
-      void replyInBackground({ normalized, larkClient, openAiClient, eventStore });
+      void replyInBackground({ normalized, config, larkClient, openAiClient, eventStore, timelineDocsClient });
     });
   }
 
