@@ -58,6 +58,30 @@ export class LarkClient {
     return data.data;
   }
 
+  async sendTextToChat(chatId, text) {
+    const token = await this.getTenantAccessToken();
+    const params = new URLSearchParams({ receive_id_type: 'chat_id' });
+    const response = await this.fetch(`${this.baseUrl}/open-apis/im/v1/messages?${params.toString()}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: 'text',
+        content: JSON.stringify({ text }),
+      }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.code !== 0) {
+      throw new Error(`Failed to send Lark message: ${data.msg || response.statusText}`);
+    }
+
+    return data.data;
+  }
+
   async listMessages({
     containerId,
     containerIdType = 'chat',

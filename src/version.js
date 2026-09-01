@@ -1,1 +1,1 @@
-export const APP_VERSION = '2026-09-01-meeting-notes-v1';
+export const APP_VERSION = '2026-09-01-daily-account-report-v1';

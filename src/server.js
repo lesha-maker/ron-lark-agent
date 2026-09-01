@@ -15,6 +15,8 @@ import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
 import { LarkSheetsClient } from './larkSheetsClient.js';
 import { handleMeetingNotesWebhook } from './meetingWebhook.js';
+import { generateDailyAccountReport } from './dailyReport.js';
+import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
 
 loadDotEnv();
 
@@ -40,6 +42,14 @@ const timelineDocsClient = new LarkDocsClient({
 const contractsSheetsClient = new LarkSheetsClient({
   baseUrl: config.larkOpenBaseUrl,
   larkClient,
+});
+startDailyReportScheduler({
+  config,
+  eventStore,
+  larkClient,
+  openAiClient,
+  timelineDocsClient,
+  contractsSheetsClient,
 });
 
 async function readRequestBody(req) {
@@ -189,6 +199,51 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, summary }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/reports/daily/preview') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const report = await generateDailyAccountReport({
+        eventStore,
+        openAiClient,
+        timelineDocsClient,
+        timelineWikiToken: config.larkTimelineWikiToken,
+        contractsSheetsClient,
+        contractsWikiToken: config.larkContractsWikiToken,
+        now: new Date(),
+        timeZone: config.dailyReportTimezone,
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, report }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/reports/daily/send') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const result = await sendDailyAccountReportNow({
+        config,
+        eventStore,
+        larkClient,
+        openAiClient,
+        timelineDocsClient,
+        contractsSheetsClient,
+        now: new Date(),
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, dateKey: result.dateKey, report: result.report }));
       return;
     }
 
