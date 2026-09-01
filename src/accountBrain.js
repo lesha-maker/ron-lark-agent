@@ -5,7 +5,7 @@ const SUMMARY_INSTRUCTIONS = [
   'Use only the provided events. Do not invent facts.',
   'Treat the live timeline document as the source of truth for delivery timelines and whether accounts are on track.',
   'Treat the live contracts spreadsheet as the source of truth for contracts, invoice status, start dates, countries, and purchased agent lists.',
-  'Use stored chat, Slack, and email events as supporting operational evidence.',
+  'Use stored Lark, Slack, WhatsApp, email, and meeting events as supporting operational evidence.',
   'Write for an internal account team that needs fast operational clarity.',
   'Return a concise summary with exactly these headings: Current read, What is working, What is blocked or risky, Next steps.',
   'Use bullets under each heading. If evidence is thin, say so plainly.',
@@ -24,6 +24,7 @@ function eventToLine(event) {
     event.actor?.userId ||
     event.actor?.openId ||
     event.actor?.email ||
+    event.actor?.waId ||
     event.email?.from?.email ||
     event.email?.from?.name ||
     'unknown';

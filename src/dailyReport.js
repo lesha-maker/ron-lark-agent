@@ -2,7 +2,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DAILY_REPORT_INSTRUCTIONS = [
   'You are Ron, an account management agent writing a daily internal account report.',
-  'The report must be based primarily on the last 24 hours of daily movement from Lark, Slack, email, and meeting notes.',
+  'The report must be based primarily on the last 24 hours of daily movement from Lark, Slack, WhatsApp, email, and meeting notes.',
   'Use the live timeline document only as baseline context for target dates and whether a client is expected to be on track.',
   'Use the live contracts spreadsheet only as baseline context for contract, invoice, start date, country, and purchased agent facts.',
   'Do not invent movement. If there was no fresh signal for a client, say no new movement today and explain whether the baseline still carries risk.',
@@ -20,6 +20,7 @@ function eventToLine(event) {
     event.actor?.email ||
     event.actor?.userId ||
     event.actor?.openId ||
+    event.actor?.waId ||
     event.email?.from?.email ||
     event.email?.from?.name ||
     'unknown';

@@ -18,6 +18,7 @@ import { handleMeetingNotesWebhook } from './meetingWebhook.js';
 import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
 import { isValidReportAccess } from './reportAccess.js';
+import { handleWhatsAppVerification, handleWhatsAppWebhook } from './whatsappWebhook.js';
 
 loadDotEnv();
 
@@ -99,6 +100,14 @@ function redactEvent(event) {
       notesUrl: event.meeting.notesUrl,
       textPreview: event.message?.text ? event.message.text.slice(0, 160) : '',
     } : undefined,
+    whatsapp: event.whatsapp ? {
+      phoneNumberId: event.whatsapp.phoneNumberId,
+      displayPhoneNumber: event.whatsapp.displayPhoneNumber,
+      waId: event.whatsapp.waId,
+      contactName: event.whatsapp.contactName,
+      groupId: event.whatsapp.groupId,
+      rawType: event.whatsapp.rawType,
+    } : undefined,
     ignored: event.ignored || false,
   };
 }
@@ -174,6 +183,13 @@ const server = http.createServer(async (req, res) => {
         userId: auth.user_id,
         botId: auth.bot_id,
       }));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/webhooks/whatsapp') {
+      const result = handleWhatsAppVerification({ query: requestUrl.searchParams, config });
+      res.writeHead(result.status, { 'content-type': result.contentType });
+      res.end(result.body);
       return;
     }
 
@@ -373,6 +389,20 @@ const server = http.createServer(async (req, res) => {
         timelineDocsClient,
         contractsSheetsClient,
         deduper,
+      });
+
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/webhooks/whatsapp') {
+      const rawBody = await readRequestBody(req);
+      const result = await handleWhatsAppWebhook({
+        rawBody,
+        headers: req.headers,
+        config,
+        eventStore,
       });
 
       res.writeHead(result.status, { 'content-type': 'application/json' });

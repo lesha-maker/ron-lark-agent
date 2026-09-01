@@ -29,5 +29,9 @@ export function loadConfig(env = process.env) {
     slackSigningSecret: env.SLACK_SIGNING_SECRET || '',
     slackBotToken: env.SLACK_BOT_TOKEN || '',
     slackReplyToAllChannelMessages: env.SLACK_REPLY_TO_ALL_CHANNEL_MESSAGES === 'true',
+    whatsappVerifyToken: env.WHATSAPP_VERIFY_TOKEN || '',
+    whatsappAppSecret: env.WHATSAPP_APP_SECRET || '',
+    whatsappBearerToken: env.WHATSAPP_BEARER_TOKEN || '',
+    whatsappPhoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
   };
 }

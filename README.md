@@ -26,6 +26,7 @@ curl http://127.0.0.1:3000/health
 
 Railway deployment instructions are in [DEPLOYMENT.md](./DEPLOYMENT.md).
 Slack setup instructions are in [SLACK_SETUP.md](./SLACK_SETUP.md).
+WhatsApp setup instructions are in [WHATSAPP_SETUP.md](./WHATSAPP_SETUP.md).
 
 Lark event endpoint:
 
@@ -37,6 +38,13 @@ Slack event endpoint:
 
 ```txt
 POST /webhooks/slack
+```
+
+WhatsApp event endpoint:
+
+```txt
+GET /webhooks/whatsapp
+POST /webhooks/whatsapp
 ```
 
 For local Lark testing, expose the server with a tunnel such as ngrok or Cloudflare Tunnel and configure the public URL in Lark Open Platform:
@@ -229,7 +237,7 @@ DAILY_REPORT_TIMEZONE=Asia/Singapore
 PUBLIC_BASE_URL=https://ron-lark-agent-production.up.railway.app
 ```
 
-The report is based primarily on the last 24 hours of stored movement from Lark, Slack, email, and meeting notes. The live timeline document and contracts spreadsheet are used as baseline context only.
+The report is based primarily on the last 24 hours of stored movement from Lark, Slack, WhatsApp, email, and meeting notes. The live timeline document and contracts spreadsheet are used as baseline context only.
 
 Ron checks once per minute and sends one short link message per local date:
 
