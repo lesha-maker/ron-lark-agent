@@ -19,12 +19,16 @@ function shouldReplyToSlackEvent(normalized, payload, config) {
   return false;
 }
 
-function dedupeKeyFor(normalized) {
+function eventDedupeKeyFor(normalized) {
+  return `slack-event:${normalized.sourceEventId || normalized.message?.id}`;
+}
+
+function replyDedupeKeyFor(normalized) {
   if (normalized.channel?.id && normalized.message?.threadTs) {
-    return `slack:${normalized.channel.id}:${normalized.message.threadTs}`;
+    return `slack-reply:${normalized.channel.id}:${normalized.message.threadTs}`;
   }
 
-  return normalized.sourceEventId || normalized.message?.id;
+  return `slack-reply:${normalized.message?.id || normalized.sourceEventId}`;
 }
 
 async function replyInBackground({ normalized, slackClient, openAiClient }) {
@@ -66,7 +70,7 @@ export async function handleSlackWebhook({
   }
 
   const normalized = normalizeSlackEvent(payload);
-  const isNewEvent = deduper?.claim(dedupeKeyFor(normalized)) ?? true;
+  const isNewEvent = deduper?.claim(eventDedupeKeyFor(normalized)) ?? true;
 
   if (!isNewEvent) {
     return { status: 200, body: { ok: true, duplicate: true } };
@@ -75,9 +79,12 @@ export async function handleSlackWebhook({
   await eventStore.append(normalized);
 
   if (slackClient?.isConfigured() && shouldReplyToSlackEvent(normalized, payload, config)) {
-    setImmediate(() => {
-      void replyInBackground({ normalized, slackClient, openAiClient });
-    });
+    const shouldSendReply = deduper?.claim(replyDedupeKeyFor(normalized)) ?? true;
+    if (shouldSendReply) {
+      setImmediate(() => {
+        void replyInBackground({ normalized, slackClient, openAiClient });
+      });
+    }
   }
 
   return { status: 200, body: { ok: true } };

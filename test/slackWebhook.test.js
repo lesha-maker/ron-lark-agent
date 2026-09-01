@@ -112,7 +112,7 @@ test('normalizes and replies to Slack app mentions', async () => {
   assert.equal(replies[0].threadTs, '1788180000.000100');
 });
 
-test('deduplicates Slack message and app mention deliveries for the same post', async () => {
+test('lets app mention reply even when a passive message event arrives first', async () => {
   const replies = [];
   const store = memoryStore();
   const deduper = {
@@ -170,7 +170,8 @@ test('deduplicates Slack message and app mention deliveries for the same post', 
   });
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.equal(second.body.duplicate, true);
-  assert.equal(store.events.length, 1);
-  assert.equal(replies.length, 0);
+  assert.deepEqual(second.body, { ok: true });
+  assert.equal(store.events.length, 2);
+  assert.equal(replies.length, 1);
+  assert.equal(replies[0].channel, 'C123');
 });
