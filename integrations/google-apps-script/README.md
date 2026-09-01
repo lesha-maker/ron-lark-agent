@@ -31,3 +31,9 @@ Interval: Every 1 minute or every 5 minutes
 The script finds recent emails where Ron is in `to` or `cc`, sends the message metadata/body to Ron's Railway webhook, and remembers processed Gmail message IDs so it does not resend the same email.
 
 Attachments are recorded as metadata only in this first version. File ingestion can be added later.
+
+## Diagnostics
+
+Run `testRonWebhook` to confirm Apps Script can post to Ron's Railway endpoint.
+
+Run `debugRonEmailSearch` to confirm the script can see messages addressed or cc'd to `ron@nas.com`. If it finds zero threads, the script is running in the wrong Gmail inbox or Ron has not received a matching email yet.

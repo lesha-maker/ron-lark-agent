@@ -50,6 +50,14 @@ function redactEvent(event) {
       textPreview: event.message?.text ? event.message.text.slice(0, 160) : '',
       mentionsCount: event.message?.mentions?.length || 0,
     },
+    email: event.email ? {
+      messageId: event.email.messageId,
+      from: event.email.from,
+      to: event.email.to,
+      cc: event.email.cc,
+      subject: event.email.subject,
+      textPreview: event.email.text ? event.email.text.slice(0, 160) : '',
+    } : undefined,
     ignored: event.ignored || false,
   };
 }
