@@ -81,6 +81,7 @@ test('sends daily report to configured Lark chat and records sent event', async 
       larkTimelineWikiToken: 'timeline',
       larkContractsWikiToken: 'contracts',
       publicBaseUrl: 'https://ron.example.com',
+      debugToken: 'secret',
     },
     eventStore: store,
     larkClient: {
@@ -94,8 +95,8 @@ test('sends daily report to configured Lark chat and records sent event', async 
 
   assert.equal(result.dateKey, '2026-09-01');
   assert.equal(sent[0].chatId, 'oc_report');
-  assert.equal(sent[0].text, 'Ron Daily Account Report is ready: https://ron.example.com/api/accounts/newspaper?date=2026-09-01');
-  assert.equal(result.reportUrl, 'https://ron.example.com/api/accounts/newspaper?date=2026-09-01');
+  assert.match(sent[0].text, /^Ron Daily Account Report is ready: https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
+  assert.match(result.reportUrl, /^https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
   assert.equal(store.events.at(-1).source, 'daily_report');
 });
 

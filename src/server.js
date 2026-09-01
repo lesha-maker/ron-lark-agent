@@ -17,6 +17,7 @@ import { LarkSheetsClient } from './larkSheetsClient.js';
 import { handleMeetingNotesWebhook } from './meetingWebhook.js';
 import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
+import { isValidReportAccess } from './reportAccess.js';
 
 loadDotEnv();
 
@@ -253,7 +254,25 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && pathname === '/api/accounts/newspaper') {
       const dateParam = requestUrl.searchParams.get('date');
-      const reportDate = dateParam ? new Date(`${dateParam}T13:00:00.000Z`) : new Date();
+      const dateKey = dateParam || new Intl.DateTimeFormat('en-CA', {
+        timeZone: config.dailyReportTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const token = requestUrl.searchParams.get('token');
+
+      if (!isValidReportAccess({
+        dateKey,
+        secret: config.debugToken || config.larkAppSecret,
+        providedToken: token,
+      })) {
+        res.writeHead(403, { 'content-type': 'text/html; charset=utf-8' });
+        res.end('<!doctype html><title>Forbidden</title><h1>Report link is invalid or expired.</h1>');
+        return;
+      }
+
+      const reportDate = new Date(`${dateKey}T13:00:00.000Z`);
       const report = await generateDailyAccountReport({
         eventStore,
         openAiClient,

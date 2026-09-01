@@ -234,7 +234,7 @@ The report is based primarily on the last 24 hours of stored movement from Lark,
 Ron checks once per minute and sends one short link message per local date:
 
 ```txt
-Ron Daily Account Report is ready: https://ron-lark-agent-production.up.railway.app/api/accounts/newspaper?date=YYYY-MM-DD
+Ron Daily Account Report is ready: https://ron-lark-agent-production.up.railway.app/api/accounts/newspaper?date=YYYY-MM-DD&token=...
 ```
 
 There are also protected admin endpoints:
@@ -245,8 +245,8 @@ POST /admin/reports/daily/send
 Authorization: Bearer YOUR_DEBUG_TOKEN
 ```
 
-The hosted report page is public at:
+The hosted report page requires the signed token in the URL:
 
 ```txt
-GET /api/accounts/newspaper?date=YYYY-MM-DD
+GET /api/accounts/newspaper?date=YYYY-MM-DD&token=...
 ```

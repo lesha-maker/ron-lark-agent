@@ -1,4 +1,5 @@
 import { generateDailyAccountReport, localTimeParts, reportDateKey } from './dailyReport.js';
+import { dailyReportUrl } from './reportAccess.js';
 
 function reportEventId(dateKey) {
   return `daily-account-report:${dateKey}`;
@@ -45,7 +46,11 @@ export async function sendDailyAccountReportNow({
   }
 
   const dateKey = reportDateKey(now, config.dailyReportTimezone);
-  const reportUrl = `${config.publicBaseUrl}/api/accounts/newspaper?date=${dateKey}`;
+  const reportUrl = dailyReportUrl({
+    publicBaseUrl: config.publicBaseUrl,
+    dateKey,
+    secret: config.debugToken || config.larkAppSecret,
+  });
   const report = await generateDailyAccountReport({
     eventStore,
     openAiClient,
