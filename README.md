@@ -156,6 +156,19 @@ https://YOUR-RAILWAY-DOMAIN/webhooks/email/inbound
 
 If `ron@nas.com` is a Google Workspace/Gmail inbox, use the Apps Script bridge in `integrations/google-apps-script`.
 
+## Meeting Notes Ingestion
+
+Ron can store Google Meet/Gemini meeting notes from a calendar bridge:
+
+```txt
+POST /webhooks/meet/notes
+Authorization: Bearer YOUR_MEETING_WEBHOOK_SECRET
+```
+
+If `MEETING_WEBHOOK_SECRET` is not configured, Ron falls back to `EMAIL_WEBHOOK_SECRET`.
+
+Use the Apps Script bridge in `integrations/google-apps-script/ron-meeting-notes-forwarder.gs` under the `ron@nas.com` Google account. Invite Ron to client calls, enable Gemini notes in Google Meet, and make sure the generated notes doc is shared with Ron or with invited internal guests.
+
 ## Account Brain
 
 Ron can summarize a connected workstream when tagged in Lark or Slack:

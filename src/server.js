@@ -14,6 +14,7 @@ import { handleSlackWebhook } from './slackWebhook.js';
 import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
 import { LarkSheetsClient } from './larkSheetsClient.js';
+import { handleMeetingNotesWebhook } from './meetingWebhook.js';
 
 loadDotEnv();
 
@@ -73,6 +74,18 @@ function redactEvent(event) {
       cc: event.email.cc,
       subject: event.email.subject,
       textPreview: event.email.text ? event.email.text.slice(0, 160) : '',
+    } : undefined,
+    meeting: event.meeting ? {
+      eventId: event.meeting.eventId,
+      title: event.meeting.title,
+      startTime: event.meeting.startTime,
+      endTime: event.meeting.endTime,
+      organizer: event.meeting.organizer,
+      attendeesCount: event.meeting.attendees?.length || 0,
+      attachmentsCount: event.meeting.attachments?.length || 0,
+      notesTitle: event.meeting.notesTitle,
+      notesUrl: event.meeting.notesUrl,
+      textPreview: event.message?.text ? event.message.text.slice(0, 160) : '',
     } : undefined,
     ignored: event.ignored || false,
   };
@@ -221,6 +234,20 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url === '/webhooks/email/inbound') {
       const rawBody = await readRequestBody(req);
       const result = await handleInboundEmailWebhook({
+        rawBody,
+        headers: req.headers,
+        config,
+        eventStore,
+      });
+
+      res.writeHead(result.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/webhooks/meet/notes') {
+      const rawBody = await readRequestBody(req);
+      const result = await handleMeetingNotesWebhook({
         rawBody,
         headers: req.headers,
         config,

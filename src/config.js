@@ -20,6 +20,7 @@ export function loadConfig(env = process.env) {
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),
     debugToken: env.DEBUG_TOKEN || '',
     emailWebhookSecret: env.EMAIL_WEBHOOK_SECRET || '',
+    meetingWebhookSecret: env.MEETING_WEBHOOK_SECRET || env.EMAIL_WEBHOOK_SECRET || '',
     slackSigningSecret: env.SLACK_SIGNING_SECRET || '',
     slackBotToken: env.SLACK_BOT_TOKEN || '',
     slackReplyToAllChannelMessages: env.SLACK_REPLY_TO_ALL_CHANNEL_MESSAGES === 'true',

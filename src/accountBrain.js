@@ -23,18 +23,21 @@ function eventToLine(event) {
   const actor =
     event.actor?.userId ||
     event.actor?.openId ||
+    event.actor?.email ||
     event.email?.from?.email ||
     event.email?.from?.name ||
     'unknown';
   const text =
     event.message?.text ||
+    event.meeting?.notesTitle ||
     event.email?.text ||
     event.email?.subject ||
     '';
   const subject = event.email?.subject ? ` subject="${event.email.subject}"` : '';
+  const meeting = event.meeting?.title ? ` meeting="${event.meeting.title}"` : '';
   const preview = String(text).replace(/\s+/g, ' ').trim().slice(0, 500);
 
-  return `[${time}] ${source}${subject} actor=${actor}: ${preview}`;
+  return `[${time}] ${source}${subject}${meeting} actor=${actor}: ${preview}`;
 }
 
 function fallbackSummary(events) {
