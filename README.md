@@ -218,7 +218,7 @@ Body:
 
 ## Daily Account Report
 
-Ron can send a newspaper-style daily report into the account management Lark chat.
+Ron can send a newspaper-style daily report link into the account management Lark chat.
 
 Configure these Railway variables:
 
@@ -226,14 +226,27 @@ Configure these Railway variables:
 ACCOUNT_REPORT_LARK_CHAT_ID=oc_xxx
 DAILY_REPORT_TIME=21:00
 DAILY_REPORT_TIMEZONE=Asia/Singapore
+PUBLIC_BASE_URL=https://ron-lark-agent-production.up.railway.app
 ```
 
 The report is based primarily on the last 24 hours of stored movement from Lark, Slack, email, and meeting notes. The live timeline document and contracts spreadsheet are used as baseline context only.
 
-Ron checks once per minute and sends one report per local date. There are also protected admin endpoints:
+Ron checks once per minute and sends one short link message per local date:
+
+```txt
+Ron Daily Account Report is ready: https://ron-lark-agent-production.up.railway.app/api/accounts/newspaper?date=YYYY-MM-DD
+```
+
+There are also protected admin endpoints:
 
 ```txt
 POST /admin/reports/daily/preview
 POST /admin/reports/daily/send
 Authorization: Bearer YOUR_DEBUG_TOKEN
+```
+
+The hosted report page is public at:
+
+```txt
+GET /api/accounts/newspaper?date=YYYY-MM-DD
 ```

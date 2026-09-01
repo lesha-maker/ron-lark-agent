@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { generateDailyAccountReport, localTimeParts, reportDateKey } from '../src/dailyReport.js';
+import { generateDailyAccountReport, localTimeParts, renderDailyAccountReportHtml, reportDateKey } from '../src/dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from '../src/dailyReportScheduler.js';
 
 function memoryStore(initialEvents = []) {
@@ -80,6 +80,7 @@ test('sends daily report to configured Lark chat and records sent event', async 
       dailyReportTimezone: 'Asia/Singapore',
       larkTimelineWikiToken: 'timeline',
       larkContractsWikiToken: 'contracts',
+      publicBaseUrl: 'https://ron.example.com',
     },
     eventStore: store,
     larkClient: {
@@ -93,7 +94,35 @@ test('sends daily report to configured Lark chat and records sent event', async 
 
   assert.equal(result.dateKey, '2026-09-01');
   assert.equal(sent[0].chatId, 'oc_report');
+  assert.equal(sent[0].text, 'Ron Daily Account Report is ready: https://ron.example.com/api/accounts/newspaper?date=2026-09-01');
+  assert.equal(result.reportUrl, 'https://ron.example.com/api/accounts/newspaper?date=2026-09-01');
   assert.equal(store.events.at(-1).source, 'daily_report');
+});
+
+test('renders daily report as newspaper HTML', () => {
+  const html = renderDailyAccountReportHtml({
+    reportText: [
+      'RON DAILY',
+      'Tuesday, September 1, 2026',
+      '',
+      'Headline: Movement picked up today',
+      '',
+      'Today’s Movement',
+      '- Pathkind: Reporting Agent moved.',
+      '',
+      'Flags From The Desk',
+      '- Dolce is delayed.',
+      '',
+      'Ron’s Closing Read',
+      '- Keep chasing access.',
+    ].join('\n'),
+    generatedAt: new Date('2026-09-01T13:00:00.000Z'),
+  });
+
+  assert.match(html, /<!doctype html>/);
+  assert.match(html, /Movement picked up today/);
+  assert.match(html, /Pathkind/);
+  assert.match(html, /Dolce is delayed/);
 });
 
 test('scheduler waits for configured local time', async () => {

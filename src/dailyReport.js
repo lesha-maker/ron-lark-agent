@@ -154,6 +154,133 @@ export async function generateDailyAccountReport({
   }
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function reportLineSections(reportText) {
+  const lines = String(reportText || '').split(/\r?\n/);
+  const title = lines.find((line) => line.trim() && !line.includes(',')) || 'RON DAILY';
+  const dateLine = lines.find((line) => /^[A-Za-z]+,\s/.test(line.trim())) || '';
+  const headlineLine = lines.find((line) => /^Headline:/i.test(line.trim())) || '';
+  const headline = headlineLine.replace(/^Headline:\s*/i, '') || 'Daily Account Report';
+  const movementIndex = lines.findIndex((line) => /^Today.?s Movement$/i.test(line.trim()));
+  const flagsIndex = lines.findIndex((line) => /^Flags From The Desk$/i.test(line.trim()));
+  const closingIndex = lines.findIndex((line) => /^Ron.?s Closing Read$/i.test(line.trim()));
+
+  const slice = (start, end) => start >= 0
+    ? lines.slice(start + 1, end >= 0 ? end : undefined).map((line) => line.trim()).filter(Boolean)
+    : [];
+
+  return {
+    title,
+    dateLine,
+    headline,
+    movement: slice(movementIndex, flagsIndex),
+    flags: slice(flagsIndex, closingIndex),
+    closing: slice(closingIndex, -1),
+    raw: reportText,
+  };
+}
+
+export function renderDailyAccountReportHtml({ reportText, generatedAt = new Date(), timeZone = 'Asia/Singapore' }) {
+  const sections = reportLineSections(reportText);
+  const generated = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(generatedAt);
+  const movement = sections.movement.length ? sections.movement : ['No client movement lines were generated.'];
+  const flags = sections.flags.length ? sections.flags : ['No flags generated.'];
+  const closing = sections.closing.join(' ') || 'No closing read generated.';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(sections.title)} - ${escapeHtml(sections.dateLine)}</title>
+  <style>
+    :root { --ink:#171717; --muted:#5f5d58; --rule:#c8c0b3; --paper:#f7f2e8; --accent:#9f2f22; --green:#136f4a; --amber:#9a650c; --red:#a53125; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#e7e0d3; color:var(--ink); font-family:Georgia,"Times New Roman",serif; line-height:1.45; }
+    .page { width:min(1120px,calc(100vw - 32px)); margin:24px auto; background:var(--paper); border:1px solid var(--rule); box-shadow:0 18px 50px rgba(35,28,20,.18); }
+    .masthead { padding:28px 34px 18px; border-bottom:4px double var(--ink); text-align:center; }
+    .kicker { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-family:Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    h1 { margin:10px 0 0; font-size:clamp(54px,8vw,112px); line-height:.9; letter-spacing:0; text-transform:uppercase; }
+    .tagline { margin:10px auto 0; color:var(--muted); font-family:Arial,sans-serif; font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .lead { display:grid; grid-template-columns:1.45fr .85fr; gap:26px; padding:28px 34px 22px; border-bottom:1px solid var(--rule); }
+    .headline { margin:0; font-size:clamp(36px,5vw,64px); line-height:.98; letter-spacing:0; }
+    .standfirst { margin:16px 0 0; color:#34312d; font-size:20px; }
+    .digest { border-left:1px solid var(--rule); padding-left:22px; }
+    .digest h2,.section h2 { margin:0 0 12px; font-family:Arial,sans-serif; font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+    .metric { display:grid; grid-template-columns:44px 1fr; gap:12px; align-items:baseline; padding:10px 0; border-top:1px solid var(--rule); font-family:Arial,sans-serif; }
+    .metric strong { font-size:24px; color:var(--accent); }
+    .metric span { color:var(--muted); font-size:13px; }
+    .content { display:grid; grid-template-columns:2fr .9fr; gap:28px; padding:26px 34px 34px; }
+    .client-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 22px; }
+    .client { min-height:96px; padding:14px 0; border-top:1px solid var(--rule); }
+    .client h3 { margin:0 0 6px; font-size:22px; line-height:1.05; }
+    .client p,.box p { margin:0; color:#33302b; font-size:15px; }
+    .rail { border-left:1px solid var(--rule); padding-left:24px; }
+    .box { padding:16px 0; border-top:4px double var(--ink); }
+    .box + .box { margin-top:20px; }
+    .box h2 { margin:0 0 10px; font-size:28px; line-height:1; }
+    .flags { list-style:none; margin:0; padding:0; font-family:Arial,sans-serif; font-size:14px; }
+    .flags li { padding:10px 0; border-top:1px solid var(--rule); }
+    .footer { padding:14px 34px; border-top:1px solid var(--rule); color:var(--muted); font-family:Arial,sans-serif; font-size:12px; display:flex; justify-content:space-between; gap:18px; }
+    @media (max-width:820px) { .lead,.content,.client-grid { grid-template-columns:1fr; } .digest,.rail { border-left:0; padding-left:0; } .kicker,.footer { flex-direction:column; align-items:center; text-align:center; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div class="kicker"><span>Account Management Desk</span><span>${escapeHtml(sections.dateLine)}</span><span>Internal Edition</span></div>
+      <h1>${escapeHtml(sections.title)}</h1>
+      <p class="tagline">Daily movement first. Live timelines and contracts as baseline.</p>
+    </header>
+    <section class="lead">
+      <article>
+        <h2 class="headline">${escapeHtml(sections.headline)}</h2>
+        <p class="standfirst">Ron read the last 24 hours across connected chats, email, and meeting notes, then checked timelines and contracts for context.</p>
+      </article>
+      <aside class="digest">
+        <h2>Morning Ledger</h2>
+        <div class="metric"><strong>${movement.length}</strong><span>client movement lines</span></div>
+        <div class="metric"><strong>${flags.length}</strong><span>flags from the desk</span></div>
+        <div class="metric"><strong>24h</strong><span>movement window</span></div>
+      </aside>
+    </section>
+    <section class="content">
+      <article class="section">
+        <h2>Front Page: Client By Client</h2>
+        <div class="client-grid">
+          ${movement.map((line) => {
+            const clean = line.replace(/^[-•]\s*/, '');
+            const [client, ...rest] = clean.split(/[:—-]\s/);
+            return `<section class="client"><h3>${escapeHtml(client || 'Client')}</h3><p>${escapeHtml(rest.join(' - ') || clean)}</p></section>`;
+          }).join('\n')}
+        </div>
+      </article>
+      <aside class="rail">
+        <section class="box"><h2>Flags From The Desk</h2><ul class="flags">${flags.map((flag) => `<li>${escapeHtml(flag.replace(/^[-•]\s*/, ''))}</li>`).join('')}</ul></section>
+        <section class="box"><h2>Ron’s Closing Read</h2><p>${escapeHtml(closing)}</p></section>
+      </aside>
+    </section>
+    <footer class="footer"><span>Generated ${escapeHtml(generated)}</span><span>Ron Account Management Agent</span></footer>
+  </main>
+</body>
+</html>`;
+}
+
 export function reportDateKey(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,

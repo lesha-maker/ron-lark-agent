@@ -18,6 +18,7 @@ export function loadConfig(env = process.env) {
     accountReportLarkChatId: env.ACCOUNT_REPORT_LARK_CHAT_ID || '',
     dailyReportTime: env.DAILY_REPORT_TIME || '21:00',
     dailyReportTimezone: env.DAILY_REPORT_TIMEZONE || 'Asia/Singapore',
+    publicBaseUrl: (env.PUBLIC_BASE_URL || env.RAILWAY_PUBLIC_DOMAIN || 'https://ron-lark-agent-production.up.railway.app').replace(/\/$/, ''),
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),

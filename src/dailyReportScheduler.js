@@ -45,6 +45,7 @@ export async function sendDailyAccountReportNow({
   }
 
   const dateKey = reportDateKey(now, config.dailyReportTimezone);
+  const reportUrl = `${config.publicBaseUrl}/api/accounts/newspaper?date=${dateKey}`;
   const report = await generateDailyAccountReport({
     eventStore,
     openAiClient,
@@ -55,16 +56,17 @@ export async function sendDailyAccountReportNow({
     now,
     timeZone: config.dailyReportTimezone,
   });
+  const message = `Ron Daily Account Report is ready: ${reportUrl}`;
 
-  await larkClient.sendTextToChat(config.accountReportLarkChatId, report);
+  await larkClient.sendTextToChat(config.accountReportLarkChatId, message);
   await recordReportSent({
     eventStore,
     dateKey,
     chatId: config.accountReportLarkChatId,
-    text: report,
+    text: message,
   });
 
-  return { dateKey, report };
+  return { dateKey, report, reportUrl, message };
 }
 
 export function startDailyReportScheduler({

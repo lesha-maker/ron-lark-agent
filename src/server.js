@@ -15,7 +15,7 @@ import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
 import { LarkSheetsClient } from './larkSheetsClient.js';
 import { handleMeetingNotesWebhook } from './meetingWebhook.js';
-import { generateDailyAccountReport } from './dailyReport.js';
+import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
 
 loadDotEnv();
@@ -103,19 +103,22 @@ function redactEvent(event) {
 
 const server = http.createServer(async (req, res) => {
   try {
-    if (req.method === 'GET' && req.url === '/health') {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const pathname = requestUrl.pathname;
+
+    if (req.method === 'GET' && pathname === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, service: 'lark-account-agent', version: APP_VERSION }));
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/version') {
+    if (req.method === 'GET' && pathname === '/version') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ version: APP_VERSION }));
       return;
     }
 
-    if (req.method === 'GET' && req.url?.startsWith('/debug/recent-events')) {
+    if (req.method === 'GET' && pathname === '/debug/recent-events') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -128,7 +131,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/admin/backfill/lark-history') {
+    if (req.method === 'POST' && pathname === '/admin/backfill/lark-history') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -153,7 +156,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/debug/slack-auth') {
+    if (req.method === 'GET' && pathname === '/debug/slack-auth') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -172,7 +175,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/admin/summarize') {
+    if (req.method === 'POST' && pathname === '/admin/summarize') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -202,7 +205,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/admin/reports/daily/preview') {
+    if (req.method === 'POST' && pathname === '/admin/reports/daily/preview') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -225,7 +228,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/admin/reports/daily/send') {
+    if (req.method === 'POST' && pathname === '/admin/reports/daily/send') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -247,7 +250,31 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/admin/slack/test-message') {
+    if (req.method === 'GET' && pathname === '/api/accounts/newspaper') {
+      const dateParam = requestUrl.searchParams.get('date');
+      const reportDate = dateParam ? new Date(`${dateParam}T13:00:00.000Z`) : new Date();
+      const report = await generateDailyAccountReport({
+        eventStore,
+        openAiClient,
+        timelineDocsClient,
+        timelineWikiToken: config.larkTimelineWikiToken,
+        contractsSheetsClient,
+        contractsWikiToken: config.larkContractsWikiToken,
+        now: reportDate,
+        timeZone: config.dailyReportTimezone,
+      });
+      const html = renderDailyAccountReportHtml({
+        reportText: report,
+        generatedAt: new Date(),
+        timeZone: config.dailyReportTimezone,
+      });
+
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(html);
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/admin/slack/test-message') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized.' }));
@@ -267,7 +294,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/webhooks/lark') {
+    if (req.method === 'POST' && pathname === '/webhooks/lark') {
       const rawBody = await readRequestBody(req);
       const result = await handleLarkWebhook({
         rawBody,
@@ -286,7 +313,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/webhooks/email/inbound') {
+    if (req.method === 'POST' && pathname === '/webhooks/email/inbound') {
       const rawBody = await readRequestBody(req);
       const result = await handleInboundEmailWebhook({
         rawBody,
@@ -300,7 +327,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/webhooks/meet/notes') {
+    if (req.method === 'POST' && pathname === '/webhooks/meet/notes') {
       const rawBody = await readRequestBody(req);
       const result = await handleMeetingNotesWebhook({
         rawBody,
@@ -314,7 +341,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/webhooks/slack') {
+    if (req.method === 'POST' && pathname === '/webhooks/slack') {
       const rawBody = await readRequestBody(req);
       const result = await handleSlackWebhook({
         rawBody,
