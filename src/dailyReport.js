@@ -1,21 +1,37 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const KNOWN_CHANNEL_HINTS = [
+  ['lark', 'oc_f7c46b8f6e8ece8b4c623153c030ff66', 'Leverage'],
+  ['lark', 'oc_8b7b430874ef65683e2e48bee05b9917', 'Pathkind'],
+  ['lark', 'oc_4140a8d2f7ab06b9be2d5832cf3f7471', 'Pathkind'],
+  ['lark', 'oc_097e8272eee10ee241bb61d0c6ec3471', 'iBeauty'],
+  ['lark', 'oc_820890aa8e48075edd2e47ab65a8f288', 'Red Alpha'],
+  ['lark', 'oc_f55681e01169b47ca93ec344bb985f36', 'DS18'],
+  ['lark', 'oc_bd65d4499aa17fbadb4fc68de8d537ee', 'DS18'],
+  ['lark', 'oc_6ff3624aaa1b2203b8d14c5aa0068ffa', 'Dali.ph'],
+];
+
 const DAILY_REPORT_INSTRUCTIONS = [
   'You are Ron, an account management agent writing a daily internal account report.',
   'The report must be based primarily on the last 24 hours of daily movement from Lark, Slack, WhatsApp, email, and meeting notes.',
   'Use the live timeline document only as baseline context for target dates and whether a client is expected to be on track.',
   'Use the live contracts spreadsheet only as baseline context for contract, invoice, start date, country, and purchased agent facts.',
+  'Do not move evidence between clients. Attribute a movement to a client only if the text names the client, the source channel maps to that client, or the meeting/email subject clearly identifies that client.',
+  'If a source is ambiguous, put it in Flags From The Desk as an unassigned signal instead of guessing.',
   'Do not invent movement. If there was no fresh signal for a client, say no new movement today and explain whether the baseline still carries risk.',
   'Write in a concise newspaper style.',
   'Return plain text suitable for chat, not HTML.',
   'Use this exact structure: RON DAILY, date line, headline, Today’s Movement, Flags From The Desk, Ron’s Closing Read.',
-  'Include one line per client under Today’s Movement.',
-  'Keep it under 700 words.',
+  'Under Today’s Movement, include one detailed brief per client in this format: - Client: Status — Movement from the last 24 hours. Why it matters. Next action.',
+  'Each client brief should be 2 to 4 short sentences, not a one-liner.',
+  'Keep it under 1100 words.',
 ].join('\n');
 
 function eventToLine(event) {
   const source = event.source || 'unknown';
   const time = event.occurredAt || '';
+  const channel = event.channel?.id ? ` channel=${event.channel.id}` : '';
+  const channelType = event.channel?.type ? ` channelType=${event.channel.type}` : '';
   const actor =
     event.actor?.email ||
     event.actor?.userId ||
@@ -33,7 +49,7 @@ function eventToLine(event) {
     '';
   const preview = String(text).replace(/\s+/g, ' ').trim().slice(0, 500);
   const label = title ? ` title="${title}"` : '';
-  return `[${time}] ${source}${label} actor=${actor}: ${preview}`;
+  return `[${time}] ${source}${channel}${channelType}${label} actor=${actor}: ${preview}`;
 }
 
 function formatContractsOverview(contractsOverview) {
@@ -57,6 +73,12 @@ function formatDateForReport(date, timeZone) {
     month: 'long',
     day: 'numeric',
   }).format(date);
+}
+
+function formatChannelHints() {
+  return KNOWN_CHANNEL_HINTS
+    .map(([source, channelId, client]) => `${source} channel=${channelId} => ${client}`)
+    .join('\n');
 }
 
 function fallbackReport({ date, timeZone, events, contractsOverview }) {
@@ -130,6 +152,9 @@ export async function generateDailyAccountReport({
     `Report date: ${formatDateForReport(now, timeZone)}`,
     `Window start: ${since.toISOString()}`,
     `Window end: ${now.toISOString()}`,
+    '',
+    'Known channel-to-client hints:',
+    formatChannelHints(),
     '',
     'Last 24 hours of movement:',
     dailyEvents.map(eventToLine).join('\n') || '(none)',
@@ -226,11 +251,11 @@ export function renderDailyAccountReportHtml({ reportText, generatedAt = new Dat
     .metric { display:grid; grid-template-columns:44px 1fr; gap:12px; align-items:baseline; padding:10px 0; border-top:1px solid var(--rule); font-family:Arial,sans-serif; }
     .metric strong { font-size:24px; color:var(--accent); }
     .metric span { color:var(--muted); font-size:13px; }
-    .content { display:grid; grid-template-columns:2fr .9fr; gap:28px; padding:26px 34px 34px; }
-    .client-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 22px; }
-    .client { min-height:96px; padding:14px 0; border-top:1px solid var(--rule); }
-    .client h3 { margin:0 0 6px; font-size:22px; line-height:1.05; }
-    .client p,.box p { margin:0; color:#33302b; font-size:15px; }
+    .content { display:grid; grid-template-columns:2.1fr .9fr; gap:30px; padding:26px 34px 34px; }
+    .client-grid { display:grid; grid-template-columns:1fr; gap:0; }
+    .client { padding:16px 0; border-top:1px solid var(--rule); }
+    .client h3 { margin:0 0 7px; font-size:25px; line-height:1.05; }
+    .client p,.box p { margin:0; color:#33302b; font-size:16px; }
     .rail { border-left:1px solid var(--rule); padding-left:24px; }
     .box { padding:16px 0; border-top:4px double var(--ink); }
     .box + .box { margin-top:20px; }

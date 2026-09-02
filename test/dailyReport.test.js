@@ -71,6 +71,33 @@ test('daily report uses only last 24 hours as movement', async () => {
   assert.match(report, /RON DAILY/);
 });
 
+test('daily report includes channel hints to prevent client mixups', async () => {
+  const now = new Date('2026-09-02T08:00:00.000Z');
+  await generateDailyAccountReport({
+    now,
+    timeZone: 'Asia/Singapore',
+    eventStore: memoryStore([
+      {
+        source: 'lark',
+        occurredAt: '2026-09-02T07:00:00.000Z',
+        channel: { id: 'oc_f55681e01169b47ca93ec344bb985f36', type: 'group' },
+        actor: { openId: 'ou_123' },
+        message: { text: 'Gorgias and Redo were added today.' },
+      },
+    ]),
+    openAiClient: {
+      isConfigured: () => true,
+      async createTextResponse({ instructions, input }) {
+        assert.match(instructions, /Do not move evidence between clients/);
+        assert.match(input, /oc_f55681e01169b47ca93ec344bb985f36 => DS18/);
+        assert.match(input, /channel=oc_f55681e01169b47ca93ec344bb985f36/);
+        assert.match(input, /Gorgias and Redo/);
+        return 'RON DAILY\nWednesday, September 2, 2026\n\nHeadline: DS18 access moved today';
+      },
+    },
+  });
+});
+
 test('sends daily report to configured Lark chat and records sent event', async () => {
   const store = memoryStore();
   const sent = [];
