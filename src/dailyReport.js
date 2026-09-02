@@ -22,9 +22,11 @@ const DAILY_REPORT_INSTRUCTIONS = [
   'Write in a concise newspaper style.',
   'Return plain text suitable for chat, not HTML.',
   'Use this exact structure: RON DAILY, date line, headline, Today’s Movement, Flags From The Desk, Ron’s Closing Read.',
-  'Under Today’s Movement, include one detailed brief per client in this format: - Client: Status — Movement from the last 24 hours. Why it matters. Next action.',
-  'Each client brief should be 2 to 4 short sentences, not a one-liner.',
-  'Keep it under 1100 words.',
+  'Under Today’s Movement, include one detailed brief per client in this format: - Client: Status — Current agent/stage. Latest movement or client feedback. Blocker/risk. Next action.',
+  'Every client brief must answer: which agent are we on, what changed or what the client said recently, what is blocking or risky, and what the account owner should do next.',
+  'If a detail is unknown, say exactly what is unknown instead of filling the gap with generic language.',
+  'Each client brief should be 4 to 6 short sentences, not a one-liner.',
+  'Keep it under 1500 words.',
 ].join('\n');
 
 function eventToLine(event) {
