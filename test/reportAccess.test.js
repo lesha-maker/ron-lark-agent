@@ -19,3 +19,13 @@ test('adds token to daily report URL', () => {
 
   assert.match(url, /^https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
 });
+
+test('adds https to bare daily report domains', () => {
+  const url = dailyReportUrl({
+    publicBaseUrl: 'ron-lark-agent-production.up.railway.app',
+    dateKey: '2026-09-07',
+    secret: 'secret',
+  });
+
+  assert.match(url, /^https:\/\/ron-lark-agent-production\.up\.railway\.app\/api\/accounts\/newspaper\?date=2026-09-07&token=/);
+});

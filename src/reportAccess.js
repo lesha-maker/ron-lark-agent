@@ -13,7 +13,10 @@ export function dailyReportUrl({ publicBaseUrl, dateKey, secret }) {
   const token = reportAccessToken({ dateKey, secret });
   const params = new URLSearchParams({ date: dateKey });
   if (token) params.set('token', token);
-  return `${publicBaseUrl.replace(/\/$/, '')}/api/accounts/newspaper?${params.toString()}`;
+  const normalizedBaseUrl = publicBaseUrl.startsWith('http')
+    ? publicBaseUrl
+    : `https://${publicBaseUrl}`;
+  return `${normalizedBaseUrl.replace(/\/$/, '')}/api/accounts/newspaper?${params.toString()}`;
 }
 
 export function isValidReportAccess({ dateKey, secret, providedToken }) {
