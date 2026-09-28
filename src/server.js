@@ -14,6 +14,7 @@ import { handleSlackWebhook } from './slackWebhook.js';
 import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
 import { LarkSheetsClient } from './larkSheetsClient.js';
+import { LarkTaskClient } from './larkTaskClient.js';
 import { handleMeetingNotesWebhook } from './meetingWebhook.js';
 import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
@@ -43,6 +44,10 @@ const timelineDocsClient = new LarkDocsClient({
   larkClient,
 });
 const contractsSheetsClient = new LarkSheetsClient({
+  baseUrl: config.larkOpenBaseUrl,
+  larkClient,
+});
+const taskClient = new LarkTaskClient({
   baseUrl: config.larkOpenBaseUrl,
   larkClient,
 });
@@ -265,6 +270,25 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, dateKey: result.dateKey, report: result.report }));
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/admin/lark/tasklist/read') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const rawBody = await readRequestBody(req);
+      const body = JSON.parse(rawBody.toString('utf8') || '{}');
+      const result = await taskClient.readTaskList(body.taskListGuid || body.url, {
+        pageSize: body.pageSize || 50,
+        limit: body.limit || 200,
+      });
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, ...result }));
       return;
     }
 
