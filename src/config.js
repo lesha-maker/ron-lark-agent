@@ -24,6 +24,7 @@ export function loadConfig(env = process.env) {
     openAiTimeoutMs: Number(env.OPENAI_TIMEOUT_MS || 25_000),
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),
     debugToken: env.DEBUG_TOKEN || '',
+    larkUserTokenPath: path.resolve(env.LARK_USER_TOKEN_PATH || './data/lark-user-token.json'),
     emailWebhookSecret: env.EMAIL_WEBHOOK_SECRET || '',
     meetingWebhookSecret: env.MEETING_WEBHOOK_SECRET || env.EMAIL_WEBHOOK_SECRET || '',
     slackSigningSecret: env.SLACK_SIGNING_SECRET || '',

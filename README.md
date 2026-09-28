@@ -258,3 +258,34 @@ The hosted report page requires the signed token in the URL:
 ```txt
 GET /api/accounts/newspaper?date=YYYY-MM-DD&token=...
 ```
+
+## Lark User OAuth For Task Lists
+
+Task lists shared with the human `ron@nas.com` user require Lark user OAuth. The bot token cannot inherit those user permissions.
+
+Add this redirect URL in the Lark app security settings:
+
+```txt
+https://ron-lark-agent-production.up.railway.app/auth/lark/callback
+```
+
+Then get Ron's authorization URL:
+
+```bash
+curl -H "Authorization: Bearer $DEBUG_TOKEN" \
+  https://ron-lark-agent-production.up.railway.app/admin/lark/oauth/start
+```
+
+Open the returned `authUrl` while signed in as the `ron@nas.com` Lark user, then check status:
+
+```bash
+curl -H "Authorization: Bearer $DEBUG_TOKEN" \
+  https://ron-lark-agent-production.up.railway.app/admin/lark/oauth/status
+```
+
+After OAuth succeeds, task-list reads use the user token before falling back to the bot token:
+
+```txt
+POST /admin/lark/tasklist/read
+Authorization: Bearer YOUR_DEBUG_TOKEN
+```

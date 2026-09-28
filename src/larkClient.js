@@ -6,6 +6,8 @@ export class LarkClient {
     this.fetch = fetchImpl;
     this.tenantToken = null;
     this.tenantTokenExpiresAt = 0;
+    this.appToken = null;
+    this.appTokenExpiresAt = 0;
   }
 
   async getTenantAccessToken() {
@@ -34,6 +36,34 @@ export class LarkClient {
     this.tenantToken = data.tenant_access_token;
     this.tenantTokenExpiresAt = Date.now() + Number(data.expire || 7200) * 1000;
     return this.tenantToken;
+  }
+
+  async getAppAccessToken() {
+    if (this.appToken && Date.now() < this.appTokenExpiresAt - 60_000) {
+      return this.appToken;
+    }
+
+    if (!this.appId || !this.appSecret) {
+      throw new Error('LARK_APP_ID and LARK_APP_SECRET are required to get app access tokens.');
+    }
+
+    const response = await this.fetch(`${this.baseUrl}/open-apis/auth/v3/app_access_token/internal`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        app_id: this.appId,
+        app_secret: this.appSecret,
+      }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.code !== 0) {
+      throw new Error(`Failed to get Lark app access token: ${data.msg || response.statusText}`);
+    }
+
+    this.appToken = data.app_access_token;
+    this.appTokenExpiresAt = Date.now() + Number(data.expire || 7200) * 1000;
+    return this.appToken;
   }
 
   async replyText(messageId, text) {

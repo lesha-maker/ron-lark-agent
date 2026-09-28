@@ -56,3 +56,36 @@ test('reads task list and tasks', async () => {
   assert.match(urls[0].url, /\/open-apis\/task\/v2\/tasklists\/tl_123\?user_id_type=open_id$/);
   assert.match(urls[1].url, /\/open-apis\/task\/v2\/tasklists\/tl_123\/tasks\?user_id_type=open_id&page_size=50$/);
 });
+
+test('prefers user OAuth token when available', async () => {
+  const urls = [];
+  const client = new LarkTaskClient({
+    baseUrl: 'https://open.larksuite.com',
+    larkClient: {
+      async getTenantAccessToken() {
+        return 'tenant-token';
+      },
+    },
+    userAuthClient: {
+      async getAccessToken() {
+        return 'user-token';
+      },
+    },
+    async fetchImpl(url, options) {
+      urls.push({ url, options });
+      return Response.json({
+        code: 0,
+        data: {
+          tasklist: {
+            guid: 'tl_123',
+            name: 'Account Management',
+          },
+        },
+      });
+    },
+  });
+
+  await client.getTaskList('tl_123');
+
+  assert.equal(urls[0].options.headers.authorization, 'Bearer user-token');
+});

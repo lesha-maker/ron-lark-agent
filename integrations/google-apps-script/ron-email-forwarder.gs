@@ -1,5 +1,6 @@
 const PROCESSED_IDS_KEY = 'RON_PROCESSED_MESSAGE_IDS';
 const MAX_PROCESSED_IDS = 500;
+const MAX_RETRIES = 3;
 
 function syncRonEmail() {
   const props = PropertiesService.getScriptProperties();
@@ -13,15 +14,38 @@ function syncRonEmail() {
 
   const processedIds = readProcessedIds_(props);
   const query = `newer_than:14d (to:${ronEmail} OR cc:${ronEmail})`;
-  const threads = GmailApp.search(query, 0, 50);
+  let threads;
+
+  try {
+    threads = withRetry_(() => GmailApp.search(query, 0, 50), 'Gmail search');
+  } catch (error) {
+    Logger.log(`Ron email sync skipped because Gmail search failed: ${error.message}`);
+    return;
+  }
+
   const newlyProcessed = [];
 
   for (const thread of threads) {
-    for (const message of thread.getMessages()) {
+    let messages;
+
+    try {
+      messages = withRetry_(() => thread.getMessages(), `Read thread ${thread.getId()}`);
+    } catch (error) {
+      Logger.log(`Skipping thread ${thread.getId()}: ${error.message}`);
+      continue;
+    }
+
+    for (const message of messages) {
       const messageId = message.getId();
       if (processedIds.has(messageId)) continue;
 
-      postMessageToRon_(message, thread, webhookUrl, webhookSecret);
+      try {
+        postMessageToRon_(message, thread, webhookUrl, webhookSecret);
+      } catch (error) {
+        Logger.log(`Leaving message ${messageId} unprocessed for retry: ${error.message}`);
+        continue;
+      }
+
       processedIds.add(messageId);
       newlyProcessed.push(messageId);
     }
@@ -110,7 +134,7 @@ function postMessageToRon_(message, thread, webhookUrl, webhookSecret) {
     })),
   };
 
-  const response = UrlFetchApp.fetch(webhookUrl, {
+  const response = withRetry_(() => UrlFetchApp.fetch(webhookUrl, {
     method: 'post',
     contentType: 'application/json',
     headers: {
@@ -119,12 +143,30 @@ function postMessageToRon_(message, thread, webhookUrl, webhookSecret) {
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
-  });
+  }), `Post message ${message.getId()} to Ron`);
 
   const status = response.getResponseCode();
   if (status < 200 || status >= 300) {
     throw new Error(`Ron webhook failed with HTTP ${status}: ${response.getContentText()}`);
   }
+}
+
+function withRetry_(operation, label) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      return operation();
+    } catch (error) {
+      lastError = error;
+      Logger.log(`${label} failed on attempt ${attempt}/${MAX_RETRIES}: ${error.message}`);
+      if (attempt < MAX_RETRIES) {
+        Utilities.sleep(1000 * attempt);
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 function readProcessedIds_(props) {

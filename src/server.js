@@ -15,6 +15,7 @@ import { generateAccountSummary } from './accountBrain.js';
 import { LarkDocsClient } from './larkDocsClient.js';
 import { LarkSheetsClient } from './larkSheetsClient.js';
 import { LarkTaskClient } from './larkTaskClient.js';
+import { LarkUserAuthClient, LarkUserTokenStore, verifyOAuthState } from './larkUserAuth.js';
 import { handleMeetingNotesWebhook } from './meetingWebhook.js';
 import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dailyReport.js';
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
@@ -47,9 +48,21 @@ const contractsSheetsClient = new LarkSheetsClient({
   baseUrl: config.larkOpenBaseUrl,
   larkClient,
 });
+const larkUserTokenStore = new LarkUserTokenStore({
+  tokenPath: config.larkUserTokenPath,
+});
+const larkUserAuthClient = new LarkUserAuthClient({
+  baseUrl: config.larkOpenBaseUrl,
+  larkClient,
+  tokenStore: larkUserTokenStore,
+  publicBaseUrl: config.publicBaseUrl,
+  appId: config.larkAppId,
+  stateSecret: config.debugToken || config.larkAppSecret,
+});
 const taskClient = new LarkTaskClient({
   baseUrl: config.larkOpenBaseUrl,
   larkClient,
+  userAuthClient: larkUserAuthClient,
 });
 startDailyReportScheduler({
   config,
@@ -188,6 +201,61 @@ const server = http.createServer(async (req, res) => {
         userId: auth.user_id,
         botId: auth.bot_id,
       }));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/admin/lark/oauth/start') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const authUrl = larkUserAuthClient.authorizationUrl();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        authUrl,
+        redirectUri: larkUserAuthClient.redirectUri(),
+      }));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/admin/lark/oauth/status') {
+      if (!isAuthorizedDebugRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized.' }));
+        return;
+      }
+
+      const status = await larkUserAuthClient.status();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, ...status }));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/auth/lark/callback') {
+      const code = requestUrl.searchParams.get('code');
+      const state = requestUrl.searchParams.get('state');
+
+      if (!verifyOAuthState(state, config.debugToken || config.larkAppSecret)) {
+        res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' });
+        res.end('<!doctype html><title>Ron Lark Auth Failed</title><h1>Ron Lark auth failed</h1><p>The OAuth state was invalid or expired. Please start again.</p>');
+        return;
+      }
+
+      try {
+        const token = await larkUserAuthClient.exchangeCode(code);
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(`<!doctype html>
+          <title>Ron Lark Auth Connected</title>
+          <h1>Ron is connected to Lark as a user.</h1>
+          <p>You can close this tab.</p>
+          <p>Open ID: ${token.openId || 'connected'}</p>`);
+      } catch (error) {
+        res.writeHead(500, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(`<!doctype html><title>Ron Lark Auth Failed</title><h1>Ron Lark auth failed</h1><p>${error.message}</p>`);
+      }
       return;
     }
 

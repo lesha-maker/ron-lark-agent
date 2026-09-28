@@ -1,5 +1,6 @@
 .env
 data/*.jsonl
+data/*token*.json
 data/contracts/
 node_modules/
 .DS_Store

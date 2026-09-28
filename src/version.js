@@ -1,1 +1,1 @@
-export const APP_VERSION = '2026-09-28-lark-tasklist-reader-v1';
+export const APP_VERSION = '2026-09-28-lark-user-oauth-v1';
