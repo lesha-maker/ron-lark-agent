@@ -58,6 +58,7 @@ const larkUserAuthClient = new LarkUserAuthClient({
   publicBaseUrl: config.publicBaseUrl,
   appId: config.larkAppId,
   stateSecret: config.debugToken || config.larkAppSecret,
+  scopes: config.larkUserOAuthScopes,
 });
 const taskClient = new LarkTaskClient({
   baseUrl: config.larkOpenBaseUrl,

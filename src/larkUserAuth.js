@@ -74,13 +74,14 @@ export class LarkUserTokenStore {
 }
 
 export class LarkUserAuthClient {
-  constructor({ baseUrl, larkClient, tokenStore, publicBaseUrl, appId, stateSecret, fetchImpl = fetch }) {
+  constructor({ baseUrl, larkClient, tokenStore, publicBaseUrl, appId, stateSecret, scopes = '', fetchImpl = fetch }) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.larkClient = larkClient;
     this.tokenStore = tokenStore;
     this.publicBaseUrl = publicBaseUrl.replace(/\/$/, '');
     this.appId = appId;
     this.stateSecret = stateSecret;
+    this.scopes = scopes;
     this.fetch = fetchImpl;
   }
 
@@ -94,6 +95,7 @@ export class LarkUserAuthClient {
       redirect_uri: this.redirectUri(),
       state: createOAuthState(this.stateSecret),
     });
+    if (this.scopes) params.set('scope', this.scopes);
     return `${this.baseUrl}/open-apis/authen/v1/index?${params.toString()}`;
   }
 
@@ -167,6 +169,7 @@ export class LarkUserAuthClient {
       openId: token?.openId || '',
       unionId: token?.unionId || '',
       name: token?.name || '',
+      scope: token?.scope || '',
     };
   }
 
@@ -179,6 +182,7 @@ export class LarkUserAuthClient {
       openId: data.open_id || '',
       unionId: data.union_id || '',
       name: data.name || data.en_name || '',
+      scope: data.scope || '',
     };
   }
 }
