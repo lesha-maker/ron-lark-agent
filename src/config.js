@@ -1,5 +1,10 @@
 import path from 'node:path';
 
+function normalizePublicBaseUrl(value) {
+  const raw = String(value || 'https://ron-lark-agent-production.up.railway.app').replace(/\/$/, '');
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 export function loadConfig(env = process.env) {
   const isRailway = Boolean(env.RAILWAY_ENVIRONMENT_NAME || env.RAILWAY_PROJECT_ID);
 
@@ -18,7 +23,7 @@ export function loadConfig(env = process.env) {
     accountReportLarkChatId: env.ACCOUNT_REPORT_LARK_CHAT_ID || '',
     dailyReportTime: env.DAILY_REPORT_TIME || '21:00',
     dailyReportTimezone: env.DAILY_REPORT_TIMEZONE || 'Asia/Singapore',
-    publicBaseUrl: (env.PUBLIC_BASE_URL || env.RAILWAY_PUBLIC_DOMAIN || 'https://ron-lark-agent-production.up.railway.app').replace(/\/$/, ''),
+    publicBaseUrl: normalizePublicBaseUrl(env.PUBLIC_BASE_URL || env.RAILWAY_PUBLIC_DOMAIN),
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
     openAiTimeoutMs: Number(env.OPENAI_TIMEOUT_MS || 25_000),
