@@ -11,7 +11,7 @@ export function taskListGuidFromInput(input) {
 }
 
 export class LarkTaskClient {
-  constructor({ baseUrl, larkClient, userAuthClient = null, preferUserToken = false, fetchImpl = fetch }) {
+  constructor({ baseUrl, larkClient, userAuthClient = null, preferUserToken = true, fetchImpl = fetch }) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.larkClient = larkClient;
     this.userAuthClient = userAuthClient;
