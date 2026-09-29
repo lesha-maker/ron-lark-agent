@@ -95,7 +95,7 @@ export class LarkUserAuthClient {
       redirect_uri: this.redirectUri(),
       state: createOAuthState(this.stateSecret),
     });
-    if (this.scopes) params.set('scope', this.scopes);
+    if (this.scopes) params.set('scope', this.scopes.trim().replace(/\s+/g, ','));
     return `${this.baseUrl}/open-apis/authen/v1/index?${params.toString()}`;
   }
 

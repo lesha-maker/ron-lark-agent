@@ -29,3 +29,18 @@ test('authorization URL includes requested user scopes', () => {
 
   assert.equal(url.searchParams.get('scope'), 'task:tasklist:read,task:task:read');
 });
+
+test('authorization URL normalizes space-separated scopes to comma-separated scopes', () => {
+  const client = new LarkUserAuthClient({
+    baseUrl: 'https://open.larksuite.com',
+    larkClient: {},
+    tokenStore: {},
+    publicBaseUrl: 'https://ron.example.com',
+    appId: 'cli_123',
+    stateSecret: 'secret',
+    scopes: 'task:tasklist:read task:task:read',
+  });
+  const url = new URL(client.authorizationUrl());
+
+  assert.equal(url.searchParams.get('scope'), 'task:tasklist:read,task:task:read');
+});
