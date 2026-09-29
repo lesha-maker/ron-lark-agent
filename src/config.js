@@ -5,6 +5,22 @@ function normalizePublicBaseUrl(value) {
   return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 }
 
+const DEFAULT_TASK_LIST_GUIDS = [
+  '7882b6a5-3269-4916-8cc4-a90067bdc55f',
+  '60cb9c29-db95-4694-ab64-14a15a589e0c',
+  'bcab27b0-165e-4d11-a091-3bd5a8611346',
+  '958bd61f-1afc-430a-b5ba-c97a4da4a021',
+  '207a49c7-89f5-4cfd-bd10-76107195e9de',
+  '185ecc4a-16d4-4277-9c65-ead294fcd8c5',
+  '67d1f97d-ce76-48e5-8d97-b4c0e8af791f',
+];
+
+function parseList(value, fallback = []) {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  return raw.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
+}
+
 export function loadConfig(env = process.env) {
   const isRailway = Boolean(env.RAILWAY_ENVIRONMENT_NAME || env.RAILWAY_PROJECT_ID);
 
@@ -20,6 +36,7 @@ export function loadConfig(env = process.env) {
     larkEncryptKey: env.LARK_ENCRYPT_KEY || '',
     larkTimelineWikiToken: env.LARK_TIMELINE_WIKI_TOKEN || 'NcZ1wTy0IipL3VkrvUYlcb6Cgmg',
     larkContractsWikiToken: env.LARK_CONTRACTS_WIKI_TOKEN || 'Xrs2walDQiSAsPkTIfZlZNiZg6e',
+    larkReportTaskListGuids: parseList(env.LARK_REPORT_TASK_LIST_GUIDS, DEFAULT_TASK_LIST_GUIDS),
     larkUserOAuthScopes: env.LARK_USER_OAUTH_SCOPES || 'offline_access,task:tasklist:read,task:tasklist:write,task:task:read,task:task:write,task:section:read,task:section:write',
     accountReportLarkChatId: env.ACCOUNT_REPORT_LARK_CHAT_ID || '',
     dailyReportTime: env.DAILY_REPORT_TIME || '21:00',

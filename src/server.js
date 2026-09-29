@@ -21,6 +21,7 @@ import { generateDailyAccountReport, renderDailyAccountReportHtml } from './dail
 import { sendDailyAccountReportNow, startDailyReportScheduler } from './dailyReportScheduler.js';
 import { isValidReportAccess } from './reportAccess.js';
 import { handleWhatsAppVerification, handleWhatsAppWebhook } from './whatsappWebhook.js';
+import { captureAccountSnapshots } from './accountSnapshots.js';
 
 loadDotEnv();
 
@@ -72,6 +73,7 @@ startDailyReportScheduler({
   openAiClient,
   timelineDocsClient,
   contractsSheetsClient,
+  taskClient,
 });
 
 async function readRequestBody(req) {
@@ -313,6 +315,20 @@ const server = http.createServer(async (req, res) => {
         contractsWikiToken: config.larkContractsWikiToken,
         now: new Date(),
         timeZone: config.dailyReportTimezone,
+        snapshotChangesText: (await captureAccountSnapshots({
+          eventStore,
+          taskClient,
+          taskListGuids: config.larkReportTaskListGuids,
+          timelineDocsClient,
+          timelineWikiToken: config.larkTimelineWikiToken,
+          dateKey: new Intl.DateTimeFormat('en-CA', {
+            timeZone: config.dailyReportTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(new Date()),
+          now: new Date(),
+        })).changesText,
       });
 
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -334,6 +350,7 @@ const server = http.createServer(async (req, res) => {
         openAiClient,
         timelineDocsClient,
         contractsSheetsClient,
+        taskClient,
         now: new Date(),
       });
 
@@ -382,6 +399,15 @@ const server = http.createServer(async (req, res) => {
       }
 
       const reportDate = new Date(`${dateKey}T13:00:00.000Z`);
+      const snapshotResult = await captureAccountSnapshots({
+        eventStore,
+        taskClient,
+        taskListGuids: config.larkReportTaskListGuids,
+        timelineDocsClient,
+        timelineWikiToken: config.larkTimelineWikiToken,
+        dateKey,
+        now: reportDate,
+      });
       const report = await generateDailyAccountReport({
         eventStore,
         openAiClient,
@@ -391,6 +417,7 @@ const server = http.createServer(async (req, res) => {
         contractsWikiToken: config.larkContractsWikiToken,
         now: reportDate,
         timeZone: config.dailyReportTimezone,
+        snapshotChangesText: snapshotResult.changesText,
       });
       const html = renderDailyAccountReportHtml({
         reportText: report,

@@ -41,6 +41,8 @@ test('daily report uses only last 24 hours as movement', async () => {
         assert.match(instructions, /last 24 hours/);
         assert.match(input, /Pathkind confirmed/);
         assert.doesNotMatch(input, /Old update/);
+        assert.match(input, /Task-list and live-timeline changes/);
+        assert.match(input, /Pathkind deployment: completed Questionnaire/);
         assert.match(input, /Live contracts baseline/);
         return 'RON DAILY\nTuesday, September 1, 2026\n\nHeadline: Pathkind moved today';
       },
@@ -66,6 +68,7 @@ test('daily report uses only last 24 hours as movement', async () => {
       },
     },
     contractsWikiToken: 'contracts',
+    snapshotChangesText: '- Pathkind deployment: completed Questionnaire.',
   });
 
   assert.match(report, /RON DAILY/);
@@ -117,6 +120,15 @@ test('sends daily report to configured Lark chat and records sent event', async 
       },
     },
     openAiClient: { isConfigured: () => false },
+    taskClient: {
+      async readTaskList(guid) {
+        return {
+          guid,
+          tasklist: { guid, name: 'Pathkind deployment' },
+          tasks: [{ guid: 'task_1', summary: 'Questionnaire', completed_at: '0' }],
+        };
+      },
+    },
     now: new Date('2026-09-01T13:00:00.000Z'),
   });
 
@@ -125,6 +137,7 @@ test('sends daily report to configured Lark chat and records sent event', async 
   assert.match(sent[0].text, /^Ron Daily Account Report is ready: https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
   assert.match(result.reportUrl, /^https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
   assert.equal(store.events.at(-1).source, 'daily_report');
+  assert.equal(store.events[0].source, 'account_snapshot');
 });
 
 test('renders daily report as newspaper HTML', () => {

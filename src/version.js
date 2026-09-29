@@ -1,1 +1,1 @@
-export const APP_VERSION = '2026-09-29-lark-task-user-token-v1';
+export const APP_VERSION = '2026-09-29-report-snapshots-v2';

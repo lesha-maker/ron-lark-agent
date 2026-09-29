@@ -1,5 +1,6 @@
 import { generateDailyAccountReport, localTimeParts, reportDateKey } from './dailyReport.js';
 import { dailyReportUrl } from './reportAccess.js';
+import { captureAccountSnapshots } from './accountSnapshots.js';
 
 function reportEventId(dateKey) {
   return `daily-account-report:${dateKey}`;
@@ -39,6 +40,7 @@ export async function sendDailyAccountReportNow({
   openAiClient,
   timelineDocsClient,
   contractsSheetsClient,
+  taskClient,
   now = new Date(),
 }) {
   if (!config.accountReportLarkChatId) {
@@ -51,6 +53,16 @@ export async function sendDailyAccountReportNow({
     dateKey,
     secret: config.larkAppSecret,
   });
+  const snapshotResult = await captureAccountSnapshots({
+    eventStore,
+    taskClient,
+    taskListGuids: config.larkReportTaskListGuids,
+    timelineDocsClient,
+    timelineWikiToken: config.larkTimelineWikiToken,
+    dateKey,
+    now,
+    force: true,
+  });
   const report = await generateDailyAccountReport({
     eventStore,
     openAiClient,
@@ -60,6 +72,7 @@ export async function sendDailyAccountReportNow({
     contractsWikiToken: config.larkContractsWikiToken,
     now,
     timeZone: config.dailyReportTimezone,
+    snapshotChangesText: snapshotResult.changesText,
   });
   const message = `Ron Daily Account Report is ready: ${reportUrl}`;
 
@@ -81,6 +94,7 @@ export function startDailyReportScheduler({
   openAiClient,
   timelineDocsClient,
   contractsSheetsClient,
+  taskClient,
   intervalMs = 60_000,
 }) {
   if (!config.accountReportLarkChatId) {
@@ -105,6 +119,7 @@ export function startDailyReportScheduler({
         openAiClient,
         timelineDocsClient,
         contractsSheetsClient,
+        taskClient,
         now,
       });
       console.log(`Daily account report sent for ${dateKey}.`);
