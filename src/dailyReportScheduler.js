@@ -11,7 +11,14 @@ async function wasReportSent(eventStore, dateKey) {
   return events.some((event) => event.source === 'daily_report' && event.sourceEventId === reportEventId(dateKey));
 }
 
-async function recordReportSent({ eventStore, dateKey, chatId, text }) {
+export async function readStoredDailyReport({ eventStore, dateKey }) {
+  const events = await eventStore.all();
+  return events
+    .filter((event) => event.source === 'daily_report' && event.sourceEventId === reportEventId(dateKey))
+    .at(-1)?.report || null;
+}
+
+async function recordReportSent({ eventStore, dateKey, chatId, text, report }) {
   await eventStore.append({
     source: 'daily_report',
     provider: 'ron-scheduler',
@@ -24,6 +31,7 @@ async function recordReportSent({ eventStore, dateKey, chatId, text }) {
       type: 'text',
       text,
     },
+    report,
     analysis: {
       actionItems: [],
       risks: [],
@@ -82,6 +90,7 @@ export async function sendDailyAccountReportNow({
     dateKey,
     chatId: config.accountReportLarkChatId,
     text: message,
+    report,
   });
 
   return { dateKey, report, reportUrl, message };

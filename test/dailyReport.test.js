@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generateDailyAccountReport, localTimeParts, renderDailyAccountReportHtml, reportDateKey } from '../src/dailyReport.js';
-import { sendDailyAccountReportNow, startDailyReportScheduler } from '../src/dailyReportScheduler.js';
+import { readStoredDailyReport, sendDailyAccountReportNow, startDailyReportScheduler } from '../src/dailyReportScheduler.js';
 
 function memoryStore(initialEvents = []) {
   const events = [...initialEvents];
@@ -138,6 +138,7 @@ test('sends daily report to configured Lark chat and records sent event', async 
   assert.match(result.reportUrl, /^https:\/\/ron\.example\.com\/api\/accounts\/newspaper\?date=2026-09-01&token=/);
   assert.equal(store.events.at(-1).source, 'daily_report');
   assert.equal(store.events[0].source, 'account_snapshot');
+  assert.equal(await readStoredDailyReport({ eventStore: store, dateKey: '2026-09-01' }), result.report);
 });
 
 test('renders daily report as newspaper HTML', () => {

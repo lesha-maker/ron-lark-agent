@@ -44,7 +44,7 @@ export function loadConfig(env = process.env) {
     publicBaseUrl: normalizePublicBaseUrl(env.PUBLIC_BASE_URL || env.RAILWAY_PUBLIC_DOMAIN),
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-5.6-luna',
-    openAiTimeoutMs: Number(env.OPENAI_TIMEOUT_MS || 25_000),
+    openAiTimeoutMs: Number(env.OPENAI_TIMEOUT_MS || 60_000),
     eventStorePath: path.resolve(env.EVENT_STORE_PATH || './data/events.jsonl'),
     debugToken: env.DEBUG_TOKEN || '',
     larkUserTokenPath: path.resolve(env.LARK_USER_TOKEN_PATH || './data/lark-user-token.json'),
