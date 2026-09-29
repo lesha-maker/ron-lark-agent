@@ -23,9 +23,9 @@ test('authorization URL includes requested user scopes', () => {
     publicBaseUrl: 'https://ron.example.com',
     appId: 'cli_123',
     stateSecret: 'secret',
-    scopes: 'task:tasklist:read task:task:read',
+    scopes: 'task:tasklist:read,task:task:read',
   });
   const url = new URL(client.authorizationUrl());
 
-  assert.equal(url.searchParams.get('scope'), 'task:tasklist:read task:task:read');
+  assert.equal(url.searchParams.get('scope'), 'task:tasklist:read,task:task:read');
 });

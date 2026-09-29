@@ -20,7 +20,7 @@ export function loadConfig(env = process.env) {
     larkEncryptKey: env.LARK_ENCRYPT_KEY || '',
     larkTimelineWikiToken: env.LARK_TIMELINE_WIKI_TOKEN || 'NcZ1wTy0IipL3VkrvUYlcb6Cgmg',
     larkContractsWikiToken: env.LARK_CONTRACTS_WIKI_TOKEN || 'Xrs2walDQiSAsPkTIfZlZNiZg6e',
-    larkUserOAuthScopes: env.LARK_USER_OAUTH_SCOPES || 'offline_access task:tasklist:read task:tasklist:write task:task:read task:task:write task:section:read task:section:write',
+    larkUserOAuthScopes: env.LARK_USER_OAUTH_SCOPES || 'offline_access,task:tasklist:read,task:tasklist:write,task:task:read,task:task:write,task:section:read,task:section:write',
     accountReportLarkChatId: env.ACCOUNT_REPORT_LARK_CHAT_ID || '',
     dailyReportTime: env.DAILY_REPORT_TIME || '21:00',
     dailyReportTimezone: env.DAILY_REPORT_TIMEZONE || 'Asia/Singapore',
