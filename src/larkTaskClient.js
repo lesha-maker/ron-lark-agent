@@ -11,10 +11,11 @@ export function taskListGuidFromInput(input) {
 }
 
 export class LarkTaskClient {
-  constructor({ baseUrl, larkClient, userAuthClient = null, fetchImpl = fetch }) {
+  constructor({ baseUrl, larkClient, userAuthClient = null, preferUserToken = false, fetchImpl = fetch }) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.larkClient = larkClient;
     this.userAuthClient = userAuthClient;
+    this.preferUserToken = preferUserToken;
     this.fetch = fetchImpl;
   }
 
@@ -39,8 +40,10 @@ export class LarkTaskClient {
   }
 
   async getAccessToken() {
-    const userToken = await this.userAuthClient?.getAccessToken();
-    if (userToken) return userToken;
+    if (this.preferUserToken) {
+      const userToken = await this.userAuthClient?.getAccessToken();
+      if (userToken) return userToken;
+    }
     return this.larkClient.getTenantAccessToken();
   }
 
