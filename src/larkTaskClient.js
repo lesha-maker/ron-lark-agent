@@ -17,6 +17,7 @@ export class LarkTaskClient {
     this.userAuthClient = userAuthClient;
     this.preferUserToken = preferUserToken;
     this.fetch = fetchImpl;
+    this.lastAuthMode = 'unknown';
   }
 
   async get(path, params = {}) {
@@ -33,7 +34,7 @@ export class LarkTaskClient {
     const data = await response.json();
 
     if (!response.ok || data.code !== 0) {
-      throw new Error(`Lark task request failed: ${data.msg || response.statusText}`);
+      throw new Error(`Lark task request failed (${this.lastAuthMode} token): ${data.msg || response.statusText}`);
     }
 
     return data.data || {};
@@ -42,8 +43,12 @@ export class LarkTaskClient {
   async getAccessToken() {
     if (this.preferUserToken) {
       const userToken = await this.userAuthClient?.getAccessToken();
-      if (userToken) return userToken;
+      if (userToken) {
+        this.lastAuthMode = 'user';
+        return userToken;
+      }
     }
+    this.lastAuthMode = 'tenant';
     return this.larkClient.getTenantAccessToken();
   }
 
