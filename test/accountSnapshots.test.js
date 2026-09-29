@@ -42,6 +42,8 @@ test('captures task-list baseline and reuses the same date snapshot', async () =
   });
 
   assert.match(result.changesText, /baseline captured/);
+  assert.match(result.currentStateText, /Pathkind deployment: 1 tasks, 1 open/);
+  assert.match(result.currentStateText, /Open tasks: Questionnaire/);
   assert.equal(store.events.length, 1);
 
   const reused = await captureAccountSnapshots({
@@ -57,6 +59,7 @@ test('captures task-list baseline and reuses the same date snapshot', async () =
 
   assert.equal(reads, 1);
   assert.equal(reused.snapshot.dateKey, '2026-09-29');
+  assert.match(reused.currentStateText, /Open tasks: Questionnaire/);
 });
 
 test('detects completed tasks and changed timeline lines', async () => {
@@ -104,6 +107,7 @@ test('detects completed tasks and changed timeline lines', async () => {
 
   assert.match(result.changesText, /completed "Platform Setup"/);
   assert.match(result.changesText, /DS18 starts Tuesday/);
+  assert.match(result.currentStateText, /Completed\/closed tasks visible in list: Platform Setup/);
 });
 
 test('can force a fresh same-date snapshot before sending the report', async () => {

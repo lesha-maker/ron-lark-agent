@@ -306,6 +306,22 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      const now = new Date();
+      const dateKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: config.dailyReportTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(now);
+      const snapshotResult = await captureAccountSnapshots({
+        eventStore,
+        taskClient,
+        taskListGuids: config.larkReportTaskListGuids,
+        timelineDocsClient,
+        timelineWikiToken: config.larkTimelineWikiToken,
+        dateKey,
+        now,
+      });
       const report = await generateDailyAccountReport({
         eventStore,
         openAiClient,
@@ -313,22 +329,10 @@ const server = http.createServer(async (req, res) => {
         timelineWikiToken: config.larkTimelineWikiToken,
         contractsSheetsClient,
         contractsWikiToken: config.larkContractsWikiToken,
-        now: new Date(),
+        now,
         timeZone: config.dailyReportTimezone,
-        snapshotChangesText: (await captureAccountSnapshots({
-          eventStore,
-          taskClient,
-          taskListGuids: config.larkReportTaskListGuids,
-          timelineDocsClient,
-          timelineWikiToken: config.larkTimelineWikiToken,
-          dateKey: new Intl.DateTimeFormat('en-CA', {
-            timeZone: config.dailyReportTimezone,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          }).format(new Date()),
-          now: new Date(),
-        })).changesText,
+        snapshotChangesText: snapshotResult.changesText,
+        currentTaskStateText: snapshotResult.currentStateText,
       });
 
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -420,6 +424,7 @@ const server = http.createServer(async (req, res) => {
           now: reportDate,
           timeZone: config.dailyReportTimezone,
           snapshotChangesText: snapshotResult.changesText,
+          currentTaskStateText: snapshotResult.currentStateText,
         });
       }
       const html = renderDailyAccountReportHtml({

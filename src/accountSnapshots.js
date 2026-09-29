@@ -129,6 +129,28 @@ function formatSnapshotChanges(changes) {
   return changes.map((change) => `- ${change}`).join('\n');
 }
 
+function formatCurrentTaskState(snapshot) {
+  const taskLists = snapshot?.taskLists || [];
+  if (!taskLists.length) return '(no task-list state captured)';
+
+  return taskLists.map((taskList) => {
+    const openTasks = (taskList.tasks || [])
+      .filter((task) => !task.completed)
+      .map((task) => task.summary || task.guid)
+      .filter(Boolean);
+    const completedTasks = (taskList.tasks || [])
+      .filter((task) => task.completed)
+      .map((task) => task.summary || task.guid)
+      .filter(Boolean);
+
+    return [
+      `${taskList.name}: ${taskList.taskCount} tasks, ${taskList.openCount} open.`,
+      `Open tasks: ${openTasks.slice(0, 35).join('; ') || 'none'}.`,
+      `Completed/closed tasks visible in list: ${completedTasks.slice(0, 12).join('; ') || 'none'}.`,
+    ].join(' ');
+  }).join('\n');
+}
+
 export async function captureAccountSnapshots({
   eventStore,
   taskClient,
@@ -148,6 +170,7 @@ export async function captureAccountSnapshots({
       snapshot: existing,
       changes: existing.changes || [],
       changesText: formatSnapshotChanges(existing.changes || []),
+      currentStateText: formatCurrentTaskState(existing),
     };
   }
 
@@ -213,5 +236,6 @@ export async function captureAccountSnapshots({
     snapshot,
     changes,
     changesText: formatSnapshotChanges(changes),
+    currentStateText: formatCurrentTaskState(snapshot),
   };
 }

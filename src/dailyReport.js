@@ -15,6 +15,7 @@ const DAILY_REPORT_INSTRUCTIONS = [
   'You are Ron, an account management agent writing a daily internal account report.',
   'The report must be based primarily on the last 24 hours of daily movement from Lark, Slack, WhatsApp, email, and meeting notes.',
   'Also treat the task-list and live-timeline snapshot diff as fresh movement, because it captures what changed since the previous report snapshot.',
+  'Use current Lark task-list state as authoritative implementation status. If task lists conflict with the timeline document, prefer the task lists and flag the timeline as stale or conflicting.',
   'Use the live timeline document only as baseline context for target dates and whether a client is expected to be on track.',
   'Use the live contracts spreadsheet only as baseline context for contract, invoice, start date, country, and purchased agent facts.',
   'Do not move evidence between clients. Attribute a movement to a client only if the text names the client, the source channel maps to that client, or the meeting/email subject clearly identifies that client.',
@@ -84,7 +85,7 @@ function formatChannelHints() {
     .join('\n');
 }
 
-function fallbackReport({ date, timeZone, events, contractsOverview, snapshotChangesText }) {
+function fallbackReport({ date, timeZone, events, contractsOverview, snapshotChangesText, currentTaskStateText }) {
   const clients = contractsOverview?.rows?.map((row) => row.client).filter(Boolean) || [];
   const movement = clients.length
     ? clients.map((client) => `- ${client}: No AI-written read available; ${events.length} total daily events were captured across connected sources.`)
@@ -100,6 +101,7 @@ function fallbackReport({ date, timeZone, events, contractsOverview, snapshotCha
     ...movement,
     '',
     'Flags From The Desk',
+    currentTaskStateText || '- No current task-list state was captured.',
     snapshotChangesText || '- No task-list or timeline snapshot diff was captured.',
     '- Review the raw daily events because Ron could not generate a deeper judgment.',
     '',
@@ -138,6 +140,7 @@ export async function generateDailyAccountReport({
   now = new Date(),
   timeZone = 'Asia/Singapore',
   snapshotChangesText = '',
+  currentTaskStateText = '',
 }) {
   const since = new Date(now.getTime() - DAY_MS);
   const allEvents = await eventStore.all();
@@ -150,7 +153,7 @@ export async function generateDailyAccountReport({
   const contractsOverview = await safeReadContracts({ contractsSheetsClient, contractsWikiToken });
 
   if (!openAiClient?.isConfigured()) {
-    return fallbackReport({ date: now, timeZone, events: dailyEvents, contractsOverview, snapshotChangesText });
+    return fallbackReport({ date: now, timeZone, events: dailyEvents, contractsOverview, snapshotChangesText, currentTaskStateText });
   }
 
   const input = [
@@ -166,6 +169,9 @@ export async function generateDailyAccountReport({
     '',
     'Task-list and live-timeline changes since previous snapshot:',
     snapshotChangesText || '(not captured)',
+    '',
+    'Current Lark task-list state (authoritative for implementation status and blockers):',
+    currentTaskStateText || '(not captured)',
     '',
     'Live timeline baseline:',
     timelineDoc
@@ -184,7 +190,7 @@ export async function generateDailyAccountReport({
     });
   } catch (error) {
     console.error('Daily account report failed:', error.message);
-    return fallbackReport({ date: now, timeZone, events: dailyEvents, contractsOverview, snapshotChangesText });
+    return fallbackReport({ date: now, timeZone, events: dailyEvents, contractsOverview, snapshotChangesText, currentTaskStateText });
   }
 }
 

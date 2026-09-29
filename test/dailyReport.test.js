@@ -43,6 +43,8 @@ test('daily report uses only last 24 hours as movement', async () => {
         assert.doesNotMatch(input, /Old update/);
         assert.match(input, /Task-list and live-timeline changes/);
         assert.match(input, /Pathkind deployment: completed Questionnaire/);
+        assert.match(input, /Current Lark task-list state/);
+        assert.match(input, /Netsuite \(New Connector\)/);
         assert.match(input, /Live contracts baseline/);
         return 'RON DAILY\nTuesday, September 1, 2026\n\nHeadline: Pathkind moved today';
       },
@@ -69,6 +71,7 @@ test('daily report uses only last 24 hours as movement', async () => {
     },
     contractsWikiToken: 'contracts',
     snapshotChangesText: '- Pathkind deployment: completed Questionnaire.',
+    currentTaskStateText: 'DS18 deployment: 18 tasks, 13 open. Open tasks: Netsuite (New Connector); TripleWhale (New Connector).',
   });
 
   assert.match(report, /RON DAILY/);

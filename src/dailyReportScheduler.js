@@ -81,6 +81,7 @@ export async function sendDailyAccountReportNow({
     now,
     timeZone: config.dailyReportTimezone,
     snapshotChangesText: snapshotResult.changesText,
+    currentTaskStateText: snapshotResult.currentStateText,
   });
   const message = `Ron Daily Account Report is ready: ${reportUrl}`;
 
