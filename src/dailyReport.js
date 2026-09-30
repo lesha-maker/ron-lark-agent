@@ -11,6 +11,8 @@ const KNOWN_CHANNEL_HINTS = [
   ['lark', 'oc_6ff3624aaa1b2203b8d14c5aa0068ffa', 'Dali.ph'],
 ];
 
+const KNOWN_CLIENTS = [...new Set(KNOWN_CHANNEL_HINTS.map(([, , client]) => client))];
+
 const DAILY_REPORT_INSTRUCTIONS = [
   'You are Ron, an account management agent writing a daily internal account report.',
   'The report must be based primarily on the last 24 hours of daily movement from Lark, Slack, WhatsApp, email, and meeting notes.',
@@ -23,8 +25,16 @@ const DAILY_REPORT_INSTRUCTIONS = [
   'Do not invent movement. If there was no fresh signal for a client, say no new movement today and explain whether the baseline still carries risk.',
   'Write in a concise newspaper style.',
   'Return plain text suitable for chat, not HTML.',
-  'Use this exact structure: RON DAILY, date line, headline, Today’s Movement, Flags From The Desk, Ron’s Closing Read.',
-  'Under Today’s Movement, include one detailed brief per client in this format: - Client: Status — Current agent/stage. Latest movement or client feedback. Blocker/risk. Next action.',
+  'Use this exact top-level structure: RON DAILY, date line, Headline:, Today’s Movement, Flags From The Desk, Ron’s Closing Read.',
+  'Under Today’s Movement, include every client from the Required client roster exactly once, even when there was no new movement.',
+  'Use this exact six-line format for every client block:',
+  'CLIENT: Client name',
+  'STATUS: ON TRACK, WATCH, DELAYED, AT RISK, or NO NEW SIGNAL',
+  'AGENT STAGE: Name the current agent and concrete implementation stage.',
+  'RECENT FEEDBACK: State the latest attributable client feedback or movement, including source and date/time when available.',
+  'BLOCKER: State the specific blocker or risk. If none is evidenced, say "No blocker evidenced in the connected sources."',
+  'NEXT ACTION: State one concrete action, owner if known, and timing if known.',
+  'Leave one blank line between client blocks.',
   'Every client brief must answer: which agent are we on, what changed or what the client said recently, what is blocking or risky, and what the account owner should do next.',
   'If a detail is unknown, say exactly what is unknown instead of filling the gap with generic language.',
   'Each client brief should be 4 to 6 short sentences, not a one-liner.',
@@ -85,10 +95,25 @@ function formatChannelHints() {
     .join('\n');
 }
 
+function requiredClientRoster(contractsOverview) {
+  return [...new Set([
+    ...KNOWN_CLIENTS,
+    ...(contractsOverview?.rows || []).map((row) => row.client).filter(Boolean),
+  ])];
+}
+
 function fallbackReport({ date, timeZone, events, contractsOverview, snapshotChangesText, currentTaskStateText }) {
-  const clients = contractsOverview?.rows?.map((row) => row.client).filter(Boolean) || [];
+  const clients = requiredClientRoster(contractsOverview);
   const movement = clients.length
-    ? clients.map((client) => `- ${client}: No AI-written read available; ${events.length} total daily events were captured across connected sources.`)
+    ? clients.flatMap((client) => [
+      `CLIENT: ${client}`,
+      'STATUS: NO NEW SIGNAL',
+      'AGENT STAGE: The current stage could not be synthesized because OpenAI is unavailable.',
+      `RECENT FEEDBACK: ${events.length} total daily events were captured across connected sources, but no AI-written client attribution is available.`,
+      'BLOCKER: The connected evidence requires human review before a blocker can be assigned.',
+      'NEXT ACTION: Review the raw daily events and confirm the current stage with the account owner.',
+      '',
+    ])
     : ['- No client roster available from the contracts spreadsheet.'];
 
   return [
@@ -164,6 +189,9 @@ export async function generateDailyAccountReport({
     'Known channel-to-client hints:',
     formatChannelHints(),
     '',
+    'Required client roster (include every client exactly once):',
+    requiredClientRoster(contractsOverview).map((client) => `- ${client}`).join('\n'),
+    '',
     'Last 24 hours of movement:',
     dailyEvents.map(eventToLine).join('\n') || '(none)',
     '',
@@ -186,7 +214,7 @@ export async function generateDailyAccountReport({
     return await openAiClient.createTextResponse({
       instructions: DAILY_REPORT_INSTRUCTIONS,
       input,
-      maxOutputTokens: 900,
+      maxOutputTokens: 3200,
     });
   } catch (error) {
     console.error('Daily account report failed:', error.message);
@@ -228,6 +256,49 @@ function reportLineSections(reportText) {
   };
 }
 
+function parseClientBlocks(lines) {
+  const blocks = [];
+  let current = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/^[-•]\s*/, '').trim();
+    const clientMatch = line.match(/^CLIENT:\s*(.+)$/i);
+    if (clientMatch) {
+      if (current) blocks.push(current);
+      current = {
+        client: clientMatch[1].trim(),
+        status: 'NO NEW SIGNAL',
+        agentStage: 'Unknown from connected sources.',
+        recentFeedback: 'No recent attributable feedback found.',
+        blocker: 'Unknown from connected sources.',
+        nextAction: 'Confirm the current account state with the owner.',
+      };
+      continue;
+    }
+
+    if (!current) continue;
+    const fieldMatch = line.match(/^(STATUS|AGENT STAGE|RECENT FEEDBACK|BLOCKER|NEXT ACTION):\s*(.*)$/i);
+    if (!fieldMatch) continue;
+    const key = fieldMatch[1].toUpperCase();
+    const value = fieldMatch[2].trim();
+    if (key === 'STATUS') current.status = value;
+    if (key === 'AGENT STAGE') current.agentStage = value;
+    if (key === 'RECENT FEEDBACK') current.recentFeedback = value;
+    if (key === 'BLOCKER') current.blocker = value;
+    if (key === 'NEXT ACTION') current.nextAction = value;
+  }
+
+  if (current) blocks.push(current);
+  return blocks;
+}
+
+function statusClass(status) {
+  const value = String(status || '').toLowerCase();
+  if (value.includes('on track')) return 'green';
+  if (value.includes('delayed') || value.includes('at risk')) return 'red';
+  return 'amber';
+}
+
 export function renderDailyAccountReportHtml({ reportText, generatedAt = new Date(), timeZone = 'Asia/Singapore' }) {
   const sections = reportLineSections(reportText);
   const generated = new Intl.DateTimeFormat('en-US', {
@@ -239,6 +310,7 @@ export function renderDailyAccountReportHtml({ reportText, generatedAt = new Dat
     year: 'numeric',
   }).format(generatedAt);
   const movement = sections.movement.length ? sections.movement : ['No client movement lines were generated.'];
+  const clientBlocks = parseClientBlocks(movement);
   const flags = sections.flags.length ? sections.flags : ['No flags generated.'];
   const closing = sections.closing.join(' ') || 'No closing read generated.';
 
@@ -268,8 +340,14 @@ export function renderDailyAccountReportHtml({ reportText, generatedAt = new Dat
     .content { display:grid; grid-template-columns:2.1fr .9fr; gap:30px; padding:26px 34px 34px; }
     .client-grid { display:grid; grid-template-columns:1fr; gap:0; }
     .client { padding:16px 0; border-top:1px solid var(--rule); }
-    .client h3 { margin:0 0 7px; font-size:25px; line-height:1.05; }
-    .client p,.box p { margin:0; color:#33302b; font-size:16px; }
+    .client-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:10px; }
+    .client h3 { margin:0; font-size:30px; line-height:1.05; }
+    .status { flex:0 0 auto; border:1px solid currentColor; border-radius:999px; padding:4px 9px 3px; font-family:Arial,sans-serif; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .status.green { color:var(--green); }
+    .status.amber { color:var(--amber); }
+    .status.red { color:var(--red); }
+    .client p,.box p { margin:8px 0 0; color:#33302b; font-size:16px; }
+    .client p strong { color:var(--muted); font-family:Arial,sans-serif; font-size:12px; letter-spacing:0; text-transform:uppercase; }
     .rail { border-left:1px solid var(--rule); padding-left:24px; }
     .box { padding:16px 0; border-top:4px double var(--ink); }
     .box + .box { margin-top:20px; }
@@ -294,7 +372,7 @@ export function renderDailyAccountReportHtml({ reportText, generatedAt = new Dat
       </article>
       <aside class="digest">
         <h2>Morning Ledger</h2>
-        <div class="metric"><strong>${movement.length}</strong><span>client movement lines</span></div>
+        <div class="metric"><strong>${clientBlocks.length || movement.length}</strong><span>clients reviewed</span></div>
         <div class="metric"><strong>${flags.length}</strong><span>flags from the desk</span></div>
         <div class="metric"><strong>24h</strong><span>movement window</span></div>
       </aside>
@@ -303,11 +381,19 @@ export function renderDailyAccountReportHtml({ reportText, generatedAt = new Dat
       <article class="section">
         <h2>Front Page: Client By Client</h2>
         <div class="client-grid">
-          ${movement.map((line) => {
-            const clean = line.replace(/^[-•]\s*/, '');
-            const [client, ...rest] = clean.split(/[:—-]\s/);
-            return `<section class="client"><h3>${escapeHtml(client || 'Client')}</h3><p>${escapeHtml(rest.join(' - ') || clean)}</p></section>`;
-          }).join('\n')}
+          ${clientBlocks.length
+            ? clientBlocks.map((client) => `<section class="client">
+              <div class="client-head"><h3>${escapeHtml(client.client)}</h3><span class="status ${statusClass(client.status)}">${escapeHtml(client.status)}</span></div>
+              <p><strong>Agent Stage:</strong> ${escapeHtml(client.agentStage)}</p>
+              <p><strong>Recent Feedback:</strong> ${escapeHtml(client.recentFeedback)}</p>
+              <p><strong>Blocker:</strong> ${escapeHtml(client.blocker)}</p>
+              <p><strong>Next Action:</strong> ${escapeHtml(client.nextAction)}</p>
+            </section>`).join('\n')
+            : movement.map((line) => {
+              const clean = line.replace(/^[-•]\s*/, '');
+              const [client, ...rest] = clean.split(/[:—-]\s/);
+              return `<section class="client"><div class="client-head"><h3>${escapeHtml(client || 'Client')}</h3></div><p>${escapeHtml(rest.join(' - ') || clean)}</p></section>`;
+            }).join('\n')}
         </div>
       </article>
       <aside class="rail">

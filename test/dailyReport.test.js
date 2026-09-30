@@ -39,6 +39,7 @@ test('daily report uses only last 24 hours as movement', async () => {
       isConfigured: () => true,
       async createTextResponse({ instructions, input }) {
         assert.match(instructions, /last 24 hours/);
+        assert.match(instructions, /CLIENT: Client name/);
         assert.match(input, /Pathkind confirmed/);
         assert.doesNotMatch(input, /Old update/);
         assert.match(input, /Task-list and live-timeline changes/);
@@ -46,6 +47,7 @@ test('daily report uses only last 24 hours as movement', async () => {
         assert.match(input, /Current Lark task-list state/);
         assert.match(input, /Netsuite \(New Connector\)/);
         assert.match(input, /Live contracts baseline/);
+        assert.match(input, /Required client roster/);
         return 'RON DAILY\nTuesday, September 1, 2026\n\nHeadline: Pathkind moved today';
       },
     },
@@ -153,7 +155,12 @@ test('renders daily report as newspaper HTML', () => {
       'Headline: Movement picked up today',
       '',
       'Today’s Movement',
-      '- Pathkind: Reporting Agent moved.',
+      'CLIENT: Pathkind',
+      'STATUS: WATCH',
+      'AGENT STAGE: Reporting Agent QA.',
+      'RECENT FEEDBACK: Client approved the first report.',
+      'BLOCKER: Final data mapping is open.',
+      'NEXT ACTION: Owner to close mapping tomorrow.',
       '',
       'Flags From The Desk',
       '- Dolce is delayed.',
@@ -167,6 +174,10 @@ test('renders daily report as newspaper HTML', () => {
   assert.match(html, /<!doctype html>/);
   assert.match(html, /Movement picked up today/);
   assert.match(html, /Pathkind/);
+  assert.match(html, /Agent Stage:/);
+  assert.match(html, /Recent Feedback:/);
+  assert.match(html, /Final data mapping is open/);
+  assert.match(html, /class="status amber">WATCH/);
   assert.match(html, /Dolce is delayed/);
 });
 
