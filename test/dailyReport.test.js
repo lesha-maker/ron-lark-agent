@@ -48,6 +48,7 @@ test('daily report uses only last 24 hours as movement', async () => {
         assert.match(input, /Netsuite \(New Connector\)/);
         assert.match(input, /Live contracts baseline/);
         assert.match(input, /Required client roster/);
+        assert.equal((input.match(/- Pathkind/g) || []).length, 1);
         return 'RON DAILY\nTuesday, September 1, 2026\n\nHeadline: Pathkind moved today';
       },
     },

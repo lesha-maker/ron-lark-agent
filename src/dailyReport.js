@@ -96,10 +96,16 @@ function formatChannelHints() {
 }
 
 function requiredClientRoster(contractsOverview) {
-  return [...new Set([
-    ...KNOWN_CLIENTS,
+  const clients = [
     ...(contractsOverview?.rows || []).map((row) => row.client).filter(Boolean),
-  ])];
+    ...KNOWN_CLIENTS,
+  ];
+  const byNormalizedName = new Map();
+  for (const client of clients) {
+    const key = String(client).trim().toLocaleLowerCase('en-US');
+    if (key && !byNormalizedName.has(key)) byNormalizedName.set(key, client);
+  }
+  return [...byNormalizedName.values()];
 }
 
 function fallbackReport({ date, timeZone, events, contractsOverview, snapshotChangesText, currentTaskStateText }) {
