@@ -438,6 +438,67 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'GET' && pathname === '/api/accounts/newspaper/latest') {
+      const token = requestUrl.searchParams.get('token');
+      if (!isValidReportAccess({
+        dateKey: 'latest',
+        secret: config.larkAppSecret,
+        providedToken: token,
+      })) {
+        res.writeHead(403, {
+          'content-type': 'text/html; charset=utf-8',
+          'access-control-allow-origin': '*',
+        });
+        res.end('<!doctype html><title>Forbidden</title><h1>Report link is invalid.</h1>');
+        return;
+      }
+
+      const now = new Date();
+      const dateKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: config.dailyReportTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(now);
+      let report = await readStoredDailyReport({ eventStore, dateKey });
+      if (!report) {
+        const snapshotResult = await captureAccountSnapshots({
+          eventStore,
+          taskClient,
+          taskListGuids: config.larkReportTaskListGuids,
+          timelineDocsClient,
+          timelineWikiToken: config.larkTimelineWikiToken,
+          dateKey,
+          now,
+        });
+        report = await generateDailyAccountReport({
+          eventStore,
+          openAiClient,
+          timelineDocsClient,
+          timelineWikiToken: config.larkTimelineWikiToken,
+          contractsSheetsClient,
+          contractsWikiToken: config.larkContractsWikiToken,
+          now,
+          timeZone: config.dailyReportTimezone,
+          snapshotChangesText: snapshotResult.changesText,
+          currentTaskStateText: snapshotResult.currentStateText,
+        });
+      }
+      const html = renderDailyAccountReportHtml({
+        reportText: report,
+        generatedAt: now,
+        timeZone: config.dailyReportTimezone,
+      });
+
+      res.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store',
+        'access-control-allow-origin': '*',
+      });
+      res.end(html);
+      return;
+    }
+
     if (req.method === 'POST' && pathname === '/admin/slack/test-message') {
       if (!isAuthorizedDebugRequest(req)) {
         res.writeHead(401, { 'content-type': 'application/json' });

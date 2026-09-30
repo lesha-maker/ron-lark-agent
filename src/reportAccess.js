@@ -19,6 +19,16 @@ export function dailyReportUrl({ publicBaseUrl, dateKey, secret }) {
   return `${normalizedBaseUrl.replace(/\/$/, '')}/api/accounts/newspaper?${params.toString()}`;
 }
 
+export function latestReportUrl({ publicBaseUrl, secret }) {
+  const token = reportAccessToken({ dateKey: 'latest', secret });
+  const params = new URLSearchParams();
+  if (token) params.set('token', token);
+  const normalizedBaseUrl = publicBaseUrl.startsWith('http')
+    ? publicBaseUrl
+    : `https://${publicBaseUrl}`;
+  return `${normalizedBaseUrl.replace(/\/$/, '')}/api/accounts/newspaper/latest?${params.toString()}`;
+}
+
 export function isValidReportAccess({ dateKey, secret, providedToken }) {
   const expectedToken = reportAccessToken({ dateKey, secret });
   if (!expectedToken || !providedToken) return false;

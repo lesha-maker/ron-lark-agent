@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dailyReportUrl, isValidReportAccess, reportAccessToken } from '../src/reportAccess.js';
+import { dailyReportUrl, isValidReportAccess, latestReportUrl, reportAccessToken } from '../src/reportAccess.js';
 
 test('creates and validates date-specific report access tokens', () => {
   const token = reportAccessToken({ dateKey: '2026-09-01', secret: 'secret' });
@@ -28,4 +28,15 @@ test('adds https to bare daily report domains', () => {
   });
 
   assert.match(url, /^https:\/\/ron-lark-agent-production\.up\.railway\.app\/api\/accounts\/newspaper\?date=2026-09-07&token=/);
+});
+
+test('creates a stable latest report URL', () => {
+  const url = latestReportUrl({
+    publicBaseUrl: 'ron.example.com',
+    secret: 'secret',
+  });
+
+  assert.match(url, /^https:\/\/ron\.example\.com\/api\/accounts\/newspaper\/latest\?token=/);
+  const token = new URL(url).searchParams.get('token');
+  assert.equal(isValidReportAccess({ dateKey: 'latest', secret: 'secret', providedToken: token }), true);
 });
